@@ -98,5 +98,9 @@ InitTestScene*.unity*
 # Auto-generated scenes by play mode tests
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
 .vscode/
-.[Aa]ssets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF.asset
-Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF.asset.meta
+# Ignore TextMesh Pro default resources to prevent merge conflicts
+/[Aa]ssets/[Tt]ext[Mm]esh [Pp]ro/
+/[Aa]ssets/[Tt]ext[Mm]esh [Pp]ro.meta
+
+# Specifically targeting the auto-generated font assets if you want to keep the folder
+/[Aa]ssets/[Tt]ext[Mm]esh [Pp]ro/Resources/Fonts & Materials/*.asset

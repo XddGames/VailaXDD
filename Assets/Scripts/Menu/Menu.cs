@@ -18,12 +18,20 @@ public class Menu : MonoBehaviourPunCallbacks
     public Button exitButton;
 
     [Header("Lobby UI")]
+    public TMP_InputField playerNameInput;
+
     public TMP_InputField roomNameInput;
     public ScrollRect roomsScrollRect;
     public Transform roomListContent;
     public GameObject roomItemPrefab;
 
-    [Header("Lobby Status (Optional)")]
+    [Header("Player Name")]
+    public bool autoCreatePlayerNameInput = true;
+    public string playerNamePrefsKey = "player_name";
+
+    [Header("Lobby Buttons")]
+    public Button createRoomButton;
+    public Button backToMainButton;
     public TMP_Text lobbyStatusText;
 
     [Header("Room UI")]
@@ -31,6 +39,7 @@ public class Menu : MonoBehaviourPunCallbacks
     public TMP_Text player1Name;
     public TMP_Text player2Name;
     public Button startButton;
+    public Button leaveRoomButton;
 
     private Dictionary<string, GameObject> roomListEntries = new Dictionary<string, GameObject>();
 
@@ -39,6 +48,11 @@ public class Menu : MonoBehaviourPunCallbacks
     private void Awake()
     {
         PhotonNetwork.AutomaticallySyncScene = true;
+
+        AutoBindUiReferences();
+
+        TryAutoCreatePlayerNameInput();
+        InitializePlayerNickname();
 
         // If only the ScrollRect is assigned, use its Content.
         if (roomListContent == null && roomsScrollRect != null)
@@ -53,6 +67,8 @@ public class Menu : MonoBehaviourPunCallbacks
     {
         ShowPanel(mainMenuPanel);
         WireMainMenuButtons();
+        WireLobbyButtons();
+        WireRoomButtons();
         SetLobbyStatus("Connecting...");
         PhotonNetwork.ConnectUsingSettings();
     }
@@ -72,6 +88,228 @@ public class Menu : MonoBehaviourPunCallbacks
         }
 
         // Settings button is intentionally left for you to implement.
+    }
+
+    private void WireLobbyButtons()
+    {
+        if (createRoomButton != null)
+        {
+            createRoomButton.onClick.RemoveAllListeners();
+            createRoomButton.onClick.AddListener(CreateRoom);
+        }
+
+        if (backToMainButton != null)
+        {
+            backToMainButton.onClick.RemoveAllListeners();
+            backToMainButton.onClick.AddListener(OnBackToMainClicked);
+        }
+    }
+
+    private void WireRoomButtons()
+    {
+        if (leaveRoomButton != null)
+        {
+            leaveRoomButton.onClick.RemoveAllListeners();
+            leaveRoomButton.onClick.AddListener(OnLeaveRoomClicked);
+        }
+
+        if (startButton != null)
+        {
+            startButton.onClick.RemoveAllListeners();
+            startButton.onClick.AddListener(StartGame);
+        }
+    }
+
+    private void AutoBindUiReferences()
+    {
+        // Panels are required to auto-find reliably.
+        if (mainMenuPanel != null)
+        {
+            startButtonMainMenu ??= FindButtonByNameContains(mainMenuPanel, "start");
+            exitButton ??= FindButtonByNameContains(mainMenuPanel, "exit");
+            settingsButton ??= FindButtonByNameContains(mainMenuPanel, "setting");
+        }
+
+        if (lobbyMenuPanel != null)
+        {
+            playerNameInput ??= FindInputFieldByNameContains(lobbyMenuPanel, "player") ?? FindInputFieldByNameContains(lobbyMenuPanel, "nick");
+
+            // Room name input: prefer one that contains "room" in the name, otherwise fall back.
+            roomNameInput ??= FindInputFieldByNameContains(lobbyMenuPanel, "room") ?? lobbyMenuPanel.GetComponentInChildren<TMP_InputField>(true);
+            lobbyStatusText ??= FindTmpTextByNameContains(lobbyMenuPanel, "status") ?? lobbyMenuPanel.GetComponentInChildren<TMP_Text>(true);
+            roomsScrollRect ??= lobbyMenuPanel.GetComponentInChildren<ScrollRect>(true);
+
+            createRoomButton ??= FindButtonByNameContains(lobbyMenuPanel, "create");
+            backToMainButton ??= FindButtonByNameContains(lobbyMenuPanel, "back");
+        }
+
+        if (roomsScrollRect != null)
+        {
+            roomListContent ??= roomsScrollRect.content;
+        }
+
+        if (roomMenuPanel != null)
+        {
+            roomNameText ??= FindTmpTextByNameContains(roomMenuPanel, "room") ?? roomMenuPanel.GetComponentInChildren<TMP_Text>(true);
+            player1Name ??= FindTmpTextByNameContains(roomMenuPanel, "player1");
+            player2Name ??= FindTmpTextByNameContains(roomMenuPanel, "player2");
+            startButton ??= FindButtonByNameContains(roomMenuPanel, "start");
+            // Prefer a dedicated Leave/Exit button; only fall back to "Back".
+            leaveRoomButton ??= FindButtonByNameContains(roomMenuPanel, "leave")
+                ?? FindButtonByNameContains(roomMenuPanel, "exit")
+                ?? FindButtonByNameContains(roomMenuPanel, "back");
+        }
+    }
+
+    private static Button FindButtonByNameContains(GameObject root, string nameContains)
+    {
+        if (root == null || string.IsNullOrWhiteSpace(nameContains))
+        {
+            return null;
+        }
+
+        nameContains = nameContains.ToLowerInvariant();
+        var buttons = root.GetComponentsInChildren<Button>(true);
+        foreach (var button in buttons)
+        {
+            if (button != null && button.name.ToLowerInvariant().Contains(nameContains))
+            {
+                return button;
+            }
+        }
+
+        return null;
+    }
+
+    private static TMP_InputField FindInputFieldByNameContains(GameObject root, string nameContains)
+    {
+        if (root == null || string.IsNullOrWhiteSpace(nameContains))
+        {
+            return null;
+        }
+
+        nameContains = nameContains.ToLowerInvariant();
+        var inputs = root.GetComponentsInChildren<TMP_InputField>(true);
+        foreach (var input in inputs)
+        {
+            if (input != null && input.name.ToLowerInvariant().Contains(nameContains))
+            {
+                return input;
+            }
+        }
+
+        return null;
+    }
+
+    private void TryAutoCreatePlayerNameInput()
+    {
+        if (!autoCreatePlayerNameInput || playerNameInput != null || lobbyMenuPanel == null)
+        {
+            return;
+        }
+
+        // Create a basic TMP input field under the lobby panel.
+        var resources = new TMP_DefaultControls.Resources();
+        var go = TMP_DefaultControls.CreateInputField(resources);
+        go.name = "PlayerNameInput";
+        go.transform.SetParent(lobbyMenuPanel.transform, false);
+
+        playerNameInput = go.GetComponent<TMP_InputField>();
+        if (playerNameInput == null)
+        {
+            return;
+        }
+
+        playerNameInput.characterLimit = 16;
+        playerNameInput.contentType = TMP_InputField.ContentType.Standard;
+
+        // Set placeholder text if present.
+        if (playerNameInput.placeholder is TMP_Text placeholder)
+        {
+            placeholder.text = "Player Name";
+        }
+
+        // Position it in a reasonable place (above the room name input if we can find it).
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0.5f, 0f);
+        rt.anchorMax = new Vector2(0.5f, 0f);
+        rt.pivot = new Vector2(0.5f, 0f);
+        rt.sizeDelta = new Vector2(220f, 36f);
+
+        if (roomNameInput != null)
+        {
+            var roomRt = roomNameInput.GetComponent<RectTransform>();
+            if (roomRt != null)
+            {
+                rt.anchoredPosition = roomRt.anchoredPosition + new Vector2(0f, roomRt.sizeDelta.y + 12f);
+                return;
+            }
+        }
+
+        rt.anchoredPosition = new Vector2(0f, 24f);
+    }
+
+    private void InitializePlayerNickname()
+    {
+        string savedName = PlayerPrefs.GetString(playerNamePrefsKey, string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(savedName))
+        {
+            savedName = $"Player{Random.Range(1000, 9999)}";
+            PlayerPrefs.SetString(playerNamePrefsKey, savedName);
+            PlayerPrefs.Save();
+        }
+
+        PhotonNetwork.NickName = savedName;
+
+        if (playerNameInput != null)
+        {
+            playerNameInput.onEndEdit.RemoveAllListeners();
+            playerNameInput.SetTextWithoutNotify(savedName);
+            playerNameInput.onEndEdit.AddListener(OnPlayerNameSubmitted);
+        }
+    }
+
+    private void OnPlayerNameSubmitted(string value)
+    {
+        string trimmed = (value ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+        {
+            // Revert to current nickname if input is cleared.
+            if (playerNameInput != null)
+            {
+                playerNameInput.SetTextWithoutNotify(PhotonNetwork.NickName);
+            }
+            return;
+        }
+
+        if (trimmed.Length > 16)
+        {
+            trimmed = trimmed.Substring(0, 16);
+        }
+
+        PhotonNetwork.NickName = trimmed;
+        PlayerPrefs.SetString(playerNamePrefsKey, trimmed);
+        PlayerPrefs.Save();
+    }
+
+    private static TMP_Text FindTmpTextByNameContains(GameObject root, string nameContains)
+    {
+        if (root == null || string.IsNullOrWhiteSpace(nameContains))
+        {
+            return null;
+        }
+
+        nameContains = nameContains.ToLowerInvariant();
+        var labels = root.GetComponentsInChildren<TMP_Text>(true);
+        foreach (var label in labels)
+        {
+            if (label != null && label.name.ToLowerInvariant().Contains(nameContains))
+            {
+                return label;
+            }
+        }
+
+        return null;
     }
 
     private void SetLobbyStatus(string message)
@@ -125,6 +363,12 @@ public class Menu : MonoBehaviourPunCallbacks
         lobbyMenuPanel.SetActive(false);
         roomMenuPanel.SetActive(false);
         panelToShow.SetActive(true);
+
+        // UI can change while panels are inactive; refresh bindings each time.
+        AutoBindUiReferences();
+        WireMainMenuButtons();
+        WireLobbyButtons();
+        WireRoomButtons();
     }
 
     public void OnStartClicked() => ShowPanel(lobbyMenuPanel);
@@ -133,7 +377,14 @@ public class Menu : MonoBehaviourPunCallbacks
 
     public void OnLeaveRoomClicked()
     {
-        PhotonNetwork.LeaveRoom();
+        if (PhotonNetwork.InRoom)
+        {
+            SetLobbyStatus("Leaving room...");
+            PhotonNetwork.LeaveRoom();
+            // The UI will switch in OnLeftRoom.
+            return;
+        }
+
         ShowPanel(lobbyMenuPanel);
     }
 
@@ -187,7 +438,7 @@ public class Menu : MonoBehaviourPunCallbacks
     {
         _isInLobby = false;
         ShowPanel(roomMenuPanel);
-        roomNameText.text = "Room: " + PhotonNetwork.CurrentRoom.Name;
+        roomNameText.text = PhotonNetwork.CurrentRoom.Name;
         UpdatePlayerList();
     }
 
@@ -290,8 +541,15 @@ public class Menu : MonoBehaviourPunCallbacks
         player1Name.text = players.Length >= 1 ? players[0].NickName : "Waiting...";
         player2Name.text = players.Length >= 2 ? players[1].NickName : "Waiting...";
 
-        // Only the Master Client (host) can click start, and only if room is full
-        startButton.interactable = PhotonNetwork.IsMasterClient && players.Length == 2;
+        // Only the Master Client (host) can start, and only if room is full.
+        bool canStart = PhotonNetwork.IsMasterClient && players.Length == 2;
+
+        if (startButton != null)
+        {
+            startButton.interactable = canStart;
+            // "Only appear when can be clicked"
+            startButton.gameObject.SetActive(canStart);
+        }
     }
 
     public void StartGame()
