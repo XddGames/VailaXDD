@@ -22,6 +22,7 @@ public class SpeechHandler : MonoBehaviour
         m_DictationRecognizer = new DictationRecognizer();
         m_DictationRecognizer.DictationResult += (text, confidence) =>
         {
+            Debug.Log($"Player Said {text}");
             // Check to see if player said something that is a command
             if (commandMap.ContainsKey(text))
             {
