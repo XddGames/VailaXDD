@@ -582,7 +582,13 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
             PlayerController playerController = mostSus.GetComponent<PlayerController>();
             if (playerController != null && playerController.GetCurrentState() == PlayerState.Alive)
             {
-                playerController.ChangeState(PlayerState.WaitingRevive);
+                // Use RPC to kill player across network
+                PhotonView targetPhotonView = playerController.GetComponent<PhotonView>();
+                if (targetPhotonView != null)
+                {
+                    targetPhotonView.RPC("RPC_KillPlayer", RpcTarget.All);
+                    Debug.Log($"Enemy killed player {playerController.name}");
+                }
             }
         }
 
