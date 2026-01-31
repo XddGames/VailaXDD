@@ -40,6 +40,8 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
     [Header("Sabotage")]
     [SerializeField] private float sabotageInterval = 30f; // Wait this long before breaking another
     [SerializeField] private float sabotageWalkSpeed = 3.5f;
+    [SerializeField] private float sabotageMinTeleportRange = 100f; // Min distance from generator to teleport
+    [SerializeField] private float sabotageMaxTeleportRange = 150f; // Max distance from generator to teleport
     private List<PowerGenerator> allGenerators = new List<PowerGenerator>();
     private PowerGenerator currentTargetGen;
     private float sabotageTimer;
@@ -290,6 +292,9 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
             if (targetGen != null)
             {
                 currentTargetGen = targetGen;
+                
+                // Teleport near the generator instead of directly to it
+                TeleportNearGenerator(targetGen);
                 
                 ChangeState(EnemyState.Sabotaging); 
                 return;
@@ -611,6 +616,51 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
             currentTargetGen.EnemySabotage();
             sabotageTimer = 0f;
             state = EnemyState.Teleporting;
+        }
+    }
+    
+    void TeleportNearGenerator(PowerGenerator generator)
+    {
+        if (agent == null || !agent.isOnNavMesh) return;
+        
+        Vector3 generatorPos = generator.transform.position;
+        
+        // Random angle and distance within sabotage teleport range
+        float randomAngle = Random.Range(0f, 360f);
+        float randomDistance = Random.Range(sabotageMinTeleportRange, sabotageMaxTeleportRange);
+        
+        Vector3 offset = Quaternion.Euler(0, randomAngle, 0) * Vector3.forward * randomDistance;
+        Vector3 targetPoint = generatorPos + offset;
+        targetPoint.y = generatorPos.y + 10f;
+        
+        int navMaskAll = -1;
+        
+        // Try to find valid NavMesh position near generator
+        for (int attempt = 0; attempt < 5; attempt++)
+        {
+            float[] searchRadii = { 50f, 100f, 200f };
+            foreach (float searchRadius in searchRadii)
+            {
+                if (NavMesh.SamplePosition(targetPoint, out NavMeshHit hit, searchRadius, navMaskAll))
+                {
+                    Vector3 warpPosition = hit.position;
+                    warpPosition.y += 2f;
+                    
+                    if (agent.Warp(warpPosition))
+                    {
+                        agent.enabled = true;
+                        agent.isStopped = false;
+                        return;
+                    }
+                }
+            }
+            
+            // Try different position if failed
+            randomAngle = Random.Range(0f, 360f);
+            randomDistance = Random.Range(sabotageMinTeleportRange, sabotageMaxTeleportRange);
+            offset = Quaternion.Euler(0, randomAngle, 0) * Vector3.forward * randomDistance;
+            targetPoint = generatorPos + offset;
+            targetPoint.y = generatorPos.y + 10f;
         }
     }
 
