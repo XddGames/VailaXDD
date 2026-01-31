@@ -21,10 +21,19 @@ public class SpectatorCamera : MonoBehaviour
         {
             spectatorCam = GetComponentInChildren<Camera>();
         }
+        
+        // Disable by default - only enable when entering spectator mode
+        enabled = false;
+        if (spectatorCam != null)
+        {
+            spectatorCam.enabled = false;
+        }
     }
 
     public void StartSpectating()
     {
+        enabled = true; // Enable the component
+        
         // Find an alive player to spectate
         FindAlivePlayer();
         
@@ -38,6 +47,7 @@ public class SpectatorCamera : MonoBehaviour
 
     public void StopSpectating()
     {
+        enabled = false; // Disable the component
         targetPlayer = null;
         
         if (spectatorCam != null)
