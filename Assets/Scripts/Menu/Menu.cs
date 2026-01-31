@@ -488,7 +488,7 @@ public class Menu : MonoBehaviourPunCallbacks
                 if (button != null)
                 {
                     button.onClick.RemoveAllListeners();
-                    button.onClick.AddListener(() => PhotonNetwork.JoinRoom(roomName));
+                    button.onClick.AddListener(() => TryJoinRoom(roomName));
                     button.interactable = info.IsOpen && info.IsVisible && info.PlayerCount < info.MaxPlayers;
                 }
                 roomListEntries.Add(info.Name, entry);
@@ -531,6 +531,31 @@ public class Menu : MonoBehaviourPunCallbacks
         roomListEntries.Clear();
     }
 
+    private void TryJoinRoom(string roomName)
+    {
+        if (!PhotonNetwork.IsConnected)
+        {
+            SetLobbyStatus("Not connected to server!");
+            return;
+        }
+
+        if (!PhotonNetwork.InLobby)
+        {
+            SetLobbyStatus("Not in lobby yet. Please wait...");
+            return;
+        }
+
+        if (PhotonNetwork.NetworkClientState != Photon.Realtime.ClientState.JoinedLobby)
+        {
+            SetLobbyStatus("Please wait, connecting to lobby...");
+            return;
+        }
+
+        Debug.Log($"Attempting to join room: {roomName}");
+        PhotonNetwork.JoinRoom(roomName);
+        SetLobbyStatus($"Joining {roomName}...");
+    }
+
     // --- PLAYER LIST LOGIC ---
     public override void OnPlayerEnteredRoom(Player newPlayer) => UpdatePlayerList();
     public override void OnPlayerLeftRoom(Player otherPlayer) => UpdatePlayerList();
@@ -556,7 +581,7 @@ public class Menu : MonoBehaviourPunCallbacks
     {
         if (PhotonNetwork.IsMasterClient)
         {
-            PhotonNetwork.LoadLevel("GameScene"); // Make sure scene is in Build Settings
+            PhotonNetwork.LoadLevel("MapScene"); // Make sure scene is in Build Settings
         }
     }
 }

@@ -1,22 +1,35 @@
 using UnityEngine;
 using Photon.Pun;
-    public enum PlayerState
-    {
-        Alive,
-        WaitingRevive,
-        Spectating,
-        SinglePlayerDead
-    }
+public enum PlayerState
+{
+    Alive,
+    WaitingRevive,
+    Spectating,
+    SinglePlayerDead
+}
 [RequireComponent(typeof(CharacterController))]
 [RequireComponent(typeof(PlayerMask))]
 
-public class PlayerController : MonoBehaviourPunCallbacks
+public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 {
     [Header("References")]
     [SerializeField] private InputHandler inputHandler;
     [SerializeField] private Camera playerCamera;
+    [SerializeField] private GameObject playerUI; // Drag your player UI Canvas here
     private CharacterController characterController;
     private PlayerMask playerMask;
+    [Header("Revive Settings")]
+    [SerializeField] private float reviveRange = 3f;
+    [SerializeField] private float reviveTime = 5f; // Time to revive in seconds
+    [SerializeField] private float reviveTimeLimit = 30f; // Time before permanent death
+    [SerializeField] private LayerMask playerLayerMask; // Set to Player layer
+    private float reviveProgress = 0f;
+    private float reviveTimer = 0f; // Countdown timer
+    private PlayerController playerBeingRevived = null;
+    private bool isBeingRevived = false;
+    
+    [Header("Spectator")]
+    private SpectatorCamera spectatorCamera;
 
     [Header("Movement Settings")]
     [SerializeField] private float walkSpeed = 5f;
@@ -38,23 +51,31 @@ public class PlayerController : MonoBehaviourPunCallbacks
     [SerializeField] private float mouseSensitivity = 0.2f;
     [SerializeField] private float maxLookAngle = 80f;
 
+    [Header("Generator Settings")]
+    [SerializeField] private float interactRange = 3f;
+    [SerializeField] private LayerMask generatorLayerMask;
+    private PowerGenerator currentGenerator = null;
+    private float generatorProgress = 0f;
+
     private const float GROUND_STICK_FORCE = -2f;
     private const float INPUT_THRESHOLD = 0.1f;
     private const float JUMP_GRAVITY_MULTIPLIER = 1.5f;
     private const float INTERACTION_COOLDOWN = 0.5f;
-
+    private Vector3 networkPosition;
+    private Quaternion networkRotation;
+    private Vector3 networkVelocity;
     private Vector3 velocity;
     private Vector3 horizontalVelocity;
     private float verticalRotation = 0f;
     private bool isGrounded;
     private bool lastInteractState;
     private float lastInteractionTime;
-    
+
     private float currentStamina;
     private float lastSprintTime;
     private PlayerState currentState;
 
-     public PlayerState GetCurrentState()
+    public PlayerState GetCurrentState()
     {
         return currentState;
     }
@@ -64,54 +85,116 @@ public class PlayerController : MonoBehaviourPunCallbacks
         characterController = GetComponent<CharacterController>();
         playerMask = GetComponent<PlayerMask>();
         currentStamina = maxStamina;
+        spectatorCamera = GetComponent<SpectatorCamera>();
     }
 
     private void Start()
     {
-        //if (!photonView.IsMine && PhotonNetwork.IsConnected)
-        /* {
-             if (playerCamera != null)
-                 playerCamera.enabled = false;
-
-             if (inputHandler != null)
-                 inputHandler.enabled = false;
-
-             enabled = false;
-             return;
-         }*/
-
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-
-        if (inputHandler == null)
+        // Setup for both local and remote players
+        if (photonView.IsMine && PhotonNetwork.IsConnected)
         {
-            inputHandler = FindAnyObjectByType<InputHandler>();
+            // LOCAL PLAYER - Setup controls
+            Debug.Log("LOCAL PLAYER - Setting up controls");
+
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+
+            // Find or use existing InputHandler
             if (inputHandler == null)
             {
-                Debug.LogError("InputHandler not found! PlayerController disabled.");
-                enabled = false;
-                return;
+                inputHandler = FindAnyObjectByType<InputHandler>();
+                if (inputHandler == null)
+                {
+                    Debug.LogError("InputHandler not found! PlayerController disabled.");
+                    enabled = false;
+                    return;
+                }
             }
-        }
 
-        if (playerCamera == null)
-        {
-            playerCamera = Camera.main;
+            inputHandler.enabled = true;
+
+            // Setup camera for local player
             if (playerCamera == null)
             {
-                Debug.LogError("Main Camera not found! PlayerController disabled.");
-                enabled = false;
-                return;
+                playerCamera = GetComponentInChildren<Camera>();
+                if (playerCamera == null)
+                {
+                    playerCamera = Camera.main;
+                }
             }
+
+            if (playerCamera != null)
+            {
+                playerCamera.enabled = true;
+
+                AudioListener listener = playerCamera.GetComponent<AudioListener>();
+                if (listener != null)
+                {
+                    listener.enabled = true;
+                }
+            }
+
+            Debug.Log($"Player setup complete. Camera: {playerCamera?.name}, InputHandler: {inputHandler?.name}");
+        }
+        else if (PhotonNetwork.IsConnected)
+        {
+            // REMOTE PLAYER - Disable camera and input only
+            Debug.Log("REMOTE PLAYER - Disabling camera and input");
+
+            if (playerCamera != null)
+            {
+                playerCamera.enabled = false;
+            }
+
+            Camera cam = GetComponentInChildren<Camera>();
+            if (cam != null)
+            {
+                cam.enabled = false;
+            }
+
+            AudioListener listener = GetComponentInChildren<AudioListener>();
+            if (listener != null)
+            {
+                listener.enabled = false;
+            }
+
+            if (inputHandler != null)
+            {
+                inputHandler.enabled = false;
+            }
+
+            // Keep the controller enabled but it won't process input
+            // This allows gravity and physics to still work for visual sync
         }
     }
+    private void HandleRemotePlayerPhysics()
+    {
+        if (characterController == null || !characterController.enabled) return;
 
+        // Smoothly move towards network position
+        Vector3 targetPosition = Vector3.Lerp(transform.position, networkPosition, Time.deltaTime * 10f);
+        Vector3 movement = targetPosition - transform.position;
+
+        characterController.Move(movement);
+        transform.rotation = Quaternion.Lerp(transform.rotation, networkRotation, Time.deltaTime * 10f);
+    }
     private void Update()
     {
-        //if (!photonView.IsMine && PhotonNetwork.IsConnected) return;
+        // Handle remote players differently
+        if (!photonView.IsMine && PhotonNetwork.IsConnected)
+        {
+            // Remote players still need gravity applied for visual sync
+            HandleRemotePlayerPhysics();
+            return;
+        }
+
         if (inputHandler == null) return;
-
-
+        
+        // Debug: Log state occasionally
+        if (Time.frameCount % 120 == 0) // Every 2 seconds
+        {
+            Debug.Log($"Player {gameObject.name} current state: {currentState}");
+        }
 
         switch (currentState)
         {
@@ -122,24 +205,356 @@ public class PlayerController : MonoBehaviourPunCallbacks
                 HandleInteraction();
                 HandleCameraRotation();
                 HandleStamina();
+                HandleRevive();
+                HandleGenerator();
                 break;
             case PlayerState.WaitingRevive:
                 HandleCameraRotation();
+                HandleWaitingRevive();
                 break;
             case PlayerState.Spectating:
+                // Spectator mode - camera is handled by SpectatorCamera component
                 break;
             case PlayerState.SinglePlayerDead:
                 break;
         }
-        
     }
 
+    private void HandleRevive()
+    {
+        if (!inputHandler.interactInput)
+        {
+            if (playerBeingRevived != null)
+            {
+                photonView.RPC(nameof(RPC_CancelRevive), RpcTarget.All, playerBeingRevived.photonView.ViewID);
+                playerBeingRevived = null;
+                reviveProgress = 0f;
+                Debug.Log("Stopped reviving - interact key released");
+            }
+            return;
+        }
+
+        if (playerBeingRevived == null)
+        {
+            PlayerController downedPlayer = FindDownedPlayerInRange();
+            if (downedPlayer != null)
+            {
+                playerBeingRevived = downedPlayer;
+                reviveProgress = 0f;
+
+                Debug.Log($"Started reviving {downedPlayer.name}");
+                // Tell everyone we're starting to revive this player
+                photonView.RPC(nameof(RPC_StartRevive), RpcTarget.All, downedPlayer.photonView.ViewID);
+            }
+            else
+            {
+                // Debug: No downed player found
+                if (Time.frameCount % 60 == 0) // Log every second
+                {
+                    Debug.Log($"Looking for downed players in range {reviveRange}m...");
+                }
+            }
+            return;
+        }
+
+        // Check if still in range
+        float distance = Vector3.Distance(transform.position, playerBeingRevived.transform.position);
+        if (distance > reviveRange)
+        {
+            // Too far away, cancel
+            photonView.RPC(nameof(RPC_CancelRevive), RpcTarget.All, playerBeingRevived.photonView.ViewID);
+            playerBeingRevived = null;
+            reviveProgress = 0f;
+            return;
+        }
+
+        // Continue reviving
+        reviveProgress += Time.deltaTime;
+
+        if (reviveProgress >= reviveTime)
+        {
+            // Revive complete!
+            photonView.RPC(nameof(RPC_CompleteRevive), RpcTarget.All, playerBeingRevived.photonView.ViewID);
+            playerBeingRevived = null;
+            reviveProgress = 0f;
+        }
+    }
+
+    private void HandleWaitingRevive()
+    {
+        // Countdown timer
+        reviveTimer += Time.deltaTime;
+        
+        // Display timer to player
+        if (Time.frameCount % 30 == 0) // Every half second
+        {
+            float timeRemaining = reviveTimeLimit - reviveTimer;
+            Debug.Log($"<color=orange>Waiting for revive... {timeRemaining:F0}s remaining</color>");
+        }
+        
+        // Check if time ran out
+        if (reviveTimer >= reviveTimeLimit)
+        {
+            // Permanent death - go to spectator
+            Debug.Log("<color=red>Revive timer expired! Entering spectator mode...</color>");
+            photonView.RPC(nameof(RPC_EnterSpectator), RpcTarget.All);
+        }
+    }
+
+    private void HandleGenerator()
+    {
+        if (playerBeingRevived != null) return;
+
+        if (!inputHandler.interactInput)
+        {
+            if (currentGenerator != null)
+            {
+                Debug.Log("Stopped fixing generator - key released");
+                currentGenerator = null;
+                generatorProgress = 0f;
+            }
+            return;
+        }
+
+        if (currentGenerator == null)
+        {
+            PowerGenerator foundGen = FindGeneratorInRange();
+            
+            if (foundGen != null && !foundGen.IsOn)
+            {
+                currentGenerator = foundGen;
+                generatorProgress = 0f;
+                Debug.Log("Started fixing generator...");
+            }
+            return;
+        }
+
+        float distance = Vector3.Distance(transform.position, currentGenerator.transform.position);
+        if (distance > interactRange)
+        {
+            currentGenerator = null;
+            generatorProgress = 0f;
+            return;
+        }
+
+        generatorProgress += Time.deltaTime;
+        if (generatorProgress >= currentGenerator.timeToTurnOn)
+        {
+            currentGenerator.photonView.RPC(nameof(PowerGenerator.RPC_SetState), RpcTarget.AllBuffered, true);
+            
+            currentGenerator = null;
+            generatorProgress = 0f;
+        }
+    }
+
+    private PowerGenerator FindGeneratorInRange()
+    {
+        Collider[] colliders = Physics.OverlapSphere(transform.position, interactRange, generatorLayerMask);
+        
+        foreach (Collider col in colliders)
+        {
+            PowerGenerator gen = col.GetComponent<PowerGenerator>();
+            if (gen != null && !gen.IsOn)
+                return gen;
+        }
+        return null;
+    }
+
+    private PlayerController FindDownedPlayerInRange()
+    {
+        Collider[] colliders = Physics.OverlapSphere(transform.position, reviveRange, playerLayerMask);
+        
+        if (Time.frameCount % 60 == 0 && colliders.Length > 0) // Debug every second
+        {
+            Debug.Log($"Found {colliders.Length} colliders in revive range");
+        }
+
+        foreach (Collider col in colliders)
+        {
+            if (col.transform == transform) continue; // Skip self
+
+            PlayerController pc = col.GetComponent<PlayerController>();
+            if (pc != null)
+            {
+                PlayerState pcState = pc.GetCurrentState();
+                bool beingRevived = pc.isBeingRevived;
+                
+                if (Time.frameCount % 60 == 0) // Debug
+                {
+                    Debug.Log($"Found player {pc.name}: State={pcState}, BeingRevived={beingRevived}");
+                }
+                
+                if (pcState == PlayerState.WaitingRevive && !beingRevived)
+                {
+                    Debug.Log($"Found downed player to revive: {pc.name}");
+                    return pc;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
+    {
+        if (stream.IsWriting)
+        {
+            // Local player - send data to network
+            stream.SendNext(transform.position);
+            stream.SendNext(transform.rotation);
+            stream.SendNext(velocity);
+            stream.SendNext((int)currentState);
+        }
+        else
+        {
+            // Remote player - receive data from network
+            networkPosition = (Vector3)stream.ReceiveNext();
+            networkRotation = (Quaternion)stream.ReceiveNext();
+            networkVelocity = (Vector3)stream.ReceiveNext();
+
+            int stateInt = (int)stream.ReceiveNext();
+            // Don't overwrite state here - RPCs handle state changes
+            // Only sync state if it's significantly different (for initial sync)
+            PlayerState networkState = (PlayerState)stateInt;
+            if (currentState == PlayerState.Alive && networkState != PlayerState.Alive)
+            {
+                // Only update to non-Alive states if we're currently Alive
+                // This prevents network lag from overwriting RPC state changes
+                currentState = networkState;
+                Debug.Log($"State synced from network: {currentState}");
+            }
+
+            // Smooth interpolation
+            float lag = Mathf.Abs((float)(PhotonNetwork.Time - info.SentServerTime));
+            networkPosition += networkVelocity * lag;
+        }
+    }
+
+    [PunRPC]
+    public void RPC_KillPlayer()
+    {
+        PlayerState oldState = currentState;
+        currentState = PlayerState.WaitingRevive;
+        reviveTimer = 0f; // Reset the death timer
+        Debug.Log($"<color=red>Player {gameObject.name} STATE CHANGED: {oldState} -> {currentState} (RPC received on {(photonView.IsMine ? "LOCAL" : "REMOTE")} client)</color>");
+        
+        // Log what should happen next
+        Debug.Log($"Player should now be in WaitingRevive state. IsMine: {photonView.IsMine}");
+    }
+
+    [PunRPC]
+    private void RPC_StartRevive(int targetViewID)
+    {
+        PhotonView targetView = PhotonView.Find(targetViewID);
+        if (targetView != null)
+        {
+            PlayerController target = targetView.GetComponent<PlayerController>();
+            if (target != null)
+            {
+                target.isBeingRevived = true;
+                Debug.Log($"Started reviving {target.name}");
+            }
+        }
+    }
+
+    [PunRPC]
+    private void RPC_CancelRevive(int targetViewID)
+    {
+        PhotonView targetView = PhotonView.Find(targetViewID);
+        if (targetView != null)
+        {
+            PlayerController target = targetView.GetComponent<PlayerController>();
+            if (target != null)
+            {
+                target.isBeingRevived = false;
+                Debug.Log($"Cancelled reviving {target.name}");
+            }
+        }
+    }
+
+    [PunRPC]
+    private void RPC_CompleteRevive(int targetViewID)
+    {
+        PhotonView targetView = PhotonView.Find(targetViewID);
+        if (targetView != null)
+        {
+            PlayerController target = targetView.GetComponent<PlayerController>();
+            if (target != null)
+            {
+                target.ChangeState(PlayerState.Alive);
+                target.isBeingRevived = false;
+                target.reviveTimer = 0f; // Reset death timer
+                Debug.Log($"Revived {target.name}!");
+            }
+        }
+    }
+    
+    [PunRPC]
+    private void RPC_EnterSpectator()
+    {
+        currentState = PlayerState.Spectating;
+        
+        // Disable player controls
+        if (characterController != null)
+        {
+            characterController.enabled = false;
+        }
+        
+        // Hide the player body and disable colliders so enemy can't target it
+        Renderer[] renderers = GetComponentsInChildren<Renderer>();
+        foreach (Renderer renderer in renderers)
+        {
+            renderer.enabled = false;
+        }
+        
+        Collider[] colliders = GetComponentsInChildren<Collider>();
+        foreach (Collider collider in colliders)
+        {
+            collider.enabled = false;
+        }
+        
+        // Only enable spectator camera for the LOCAL player who died
+        if (photonView.IsMine)
+        {
+            // Disable player UI
+            if (playerUI != null)
+            {
+                playerUI.SetActive(false);
+            }
+            
+            if (spectatorCamera != null)
+            {
+                spectatorCamera.StartSpectating();
+            }
+            else
+            {
+                Debug.LogWarning("No SpectatorCamera component found! Add SpectatorCamera to player prefab.");
+            }
+        }
+        
+        Debug.Log($"<color=blue>Player {gameObject.name} entered spectator mode - body hidden and colliders disabled (IsMine: {photonView.IsMine})</color>");
+    }
+
+    public float GetReviveProgress()
+    {
+        return reviveProgress / reviveTime;
+    }
+
+    public bool IsReviving()
+    {
+        return playerBeingRevived != null;
+    }
+
+    public bool IsBeingRevived()
+    {
+        return isBeingRevived;
+    }
     public PlayerState ChangeState(PlayerState newState)
     {
         PlayerState tempState = currentState;
         currentState = newState;
         return tempState;
-        
+
     }
 
     private void HandleGroundCheck()
@@ -184,7 +599,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
         Vector3 targetVelocity = moveDirection * currentSpeed;
 
         if (isGrounded)
-        {            
+        {
             if (input.sqrMagnitude < INPUT_THRESHOLD * INPUT_THRESHOLD)
             {
                 float frictionFactor = Mathf.Max(0f, 1f - groundFriction * Time.deltaTime);
@@ -335,5 +750,32 @@ public class PlayerController : MonoBehaviourPunCallbacks
     public float GetCurrentSpeed()
     {
         return CalculateSpeed();
+    }
+
+    private void OnGUI()
+    {
+        // Don't show UI when spectating
+        if (currentState == PlayerState.Spectating)
+            return;
+            
+        if (playerBeingRevived != null)
+        {
+            float progress = reviveProgress / reviveTime;
+            GUI.Box(new Rect(Screen.width / 2 - 100, Screen.height - 100, 200, 30), "");
+            GUI.Box(new Rect(Screen.width / 2 - 100, Screen.height - 100, 200 * progress, 30), $"Reviving... {progress * 100:F0}%");
+        }
+
+        if (isBeingRevived)
+        {
+            GUI.Label(new Rect(Screen.width / 2 - 100, Screen.height / 2, 200, 30), "Being revived...");
+        }
+
+        if (currentGenerator != null)
+        {
+            float progress = generatorProgress / currentGenerator.timeToTurnOn;
+            
+            GUI.Box(new Rect(Screen.width / 2 - 100, Screen.height - 150, 200, 30), "");
+            GUI.Box(new Rect(Screen.width / 2 - 100, Screen.height - 150, 200 * progress, 30), $"Powering Up... {progress * 100:F0}%");
+        }
     }
 }

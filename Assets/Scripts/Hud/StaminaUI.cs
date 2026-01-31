@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using Photon.Pun;
 
 public class StaminaUI : MonoBehaviour
 {
@@ -13,29 +14,66 @@ public class StaminaUI : MonoBehaviour
     [SerializeField] private float lowStaminaThreshold = 0.3f;
     [SerializeField] private bool hideWhenFull = true;
 
+    private bool searchingForPlayer = false;
+
     private void Start()
     {
+        if (staminaFill == null)
+        {
+            Debug.LogError("StaminaUI: Stamina Fill Image not assigned!");
+            enabled = false;
+            return;
+        }
+
+        TryFindLocalPlayer();
+        
         if (playerController == null)
         {
-            playerController = FindObjectOfType<PlayerController>();
-            if (playerController == null)
+            searchingForPlayer = true;
+            Debug.LogWarning("StaminaUI: Player not found yet, will keep searching...");
+        }
+    }
+
+    private void TryFindLocalPlayer()
+    {
+        if (playerController != null) return;
+
+        PlayerController[] allPlayers = FindObjectsOfType<PlayerController>();
+        Debug.Log($"StaminaUI: Found {allPlayers.Length} PlayerControllers in scene");
+        
+        foreach (PlayerController player in allPlayers)
+        {
+            PhotonView pv = player.GetComponent<PhotonView>();
+            if (pv != null)
             {
-                Debug.LogError("PlayerController not found! StaminaUI disabled.");
-                enabled = false;
-                return;
+                Debug.Log($"StaminaUI: Checking player with PhotonView - IsMine: {pv.IsMine}");
+                if (pv.IsMine)
+                {
+                    playerController = player;
+                    searchingForPlayer = false;
+                    Debug.Log("StaminaUI: Found local player controller!");
+                    return;
+                }
             }
         }
 
-        if (staminaFill == null)
+        // Single player mode (no Photon)
+        if (!PhotonNetwork.IsConnected && allPlayers.Length > 0)
         {
-            Debug.LogError("Stamina Fill Image not assigned! StaminaUI disabled.");
-            enabled = false;
-            return;
+            playerController = allPlayers[0];
+            searchingForPlayer = false;
+            Debug.Log("StaminaUI: Single player mode - using first player");
         }
     }
 
     private void Update()
     {
+        // Keep searching for player if not found yet
+        if (searchingForPlayer)
+        {
+            TryFindLocalPlayer();
+        }
+
         if (playerController == null || staminaFill == null) return;
 
         float staminaPercentage = playerController.GetStaminaPercentage();
