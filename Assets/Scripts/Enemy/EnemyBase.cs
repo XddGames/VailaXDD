@@ -4,7 +4,7 @@ using UnityEngine.UI;
 using System.Collections.Generic;
 using Photon.Pun;
 
-public class EnemyBase : MonoBehaviourPunCallbacks
+public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
 {
     public enum EnemyState { Teleporting, Observing, Patrolling, Chasing }
 
@@ -80,7 +80,49 @@ public class EnemyBase : MonoBehaviourPunCallbacks
         Debug.Log($"Enemy tracking {Players.Count} players");
     }
 
-
+    public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
+{
+    if (stream.IsWriting)
+    {
+        // Master Client - send enemy data
+        stream.SendNext(transform.position);
+        stream.SendNext(transform.rotation);
+        stream.SendNext((int)state);
+        
+        // Send suspicion levels
+        for (int i = 0; i < suspicionLevels.Length; i++)
+        {
+            stream.SendNext(suspicionLevels[i]);
+        }
+    }
+    else
+    {
+        // Non-master clients - receive enemy data
+        Vector3 networkPos = (Vector3)stream.ReceiveNext();
+        Quaternion networkRot = (Quaternion)stream.ReceiveNext();
+        int stateInt = (int)stream.ReceiveNext();
+        
+        // Smoothly interpolate position
+        if (agent != null && agent.enabled)
+        {
+            agent.Warp(networkPos);
+            transform.rotation = networkRot;
+        }
+        else
+        {
+            transform.position = networkPos;
+            transform.rotation = networkRot;
+        }
+        
+        state = (EnemyState)stateInt;
+        
+        // Receive suspicion levels
+        for (int i = 0; i < suspicionLevels.Length && i < Players.Count; i++)
+        {
+            suspicionLevels[i] = (float)stream.ReceiveNext();
+        }
+    }
+}
     void Awake()
     {
         pv = GetComponent<PhotonView>();
