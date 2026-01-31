@@ -36,7 +36,20 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
         }
         if (PhotonNetwork.IsMasterClient)
         {
-            PhotonNetwork.InstantiateRoomObject("EnemyPrefabName", spawnPosition, Quaternion.identity);
+            // Make sure you have an enemy prefab in Resources folder
+            Vector3 enemySpawnPos = spawnPosition;
+            if (enemySpawnPos == Vector3.zero)
+            {
+                enemySpawnPos = new Vector3(0, 1, 0); // Default position
+            }
+            
+            GameObject enemy = PhotonNetwork.InstantiateRoomObject(
+                "EnemyBase", // Your actual enemy prefab name (must be in Resources folder)
+                enemySpawnPos, 
+                Quaternion.identity
+            );
+            
+            Debug.Log($"Master Client spawned enemy at {enemySpawnPos}");
         }
         // Spawn player immediately if connected
         if (PhotonNetwork.IsConnectedAndReady && localPlayerInstance == null)

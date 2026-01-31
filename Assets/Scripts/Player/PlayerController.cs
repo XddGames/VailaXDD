@@ -10,7 +10,7 @@ public enum PlayerState
 [RequireComponent(typeof(CharacterController))]
 [RequireComponent(typeof(PlayerMask))]
 
-public class PlayerController : MonoBehaviourPunCallbacks
+public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 {
     [Header("References")]
     [SerializeField] private InputHandler inputHandler;
