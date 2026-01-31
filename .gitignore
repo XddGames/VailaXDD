@@ -98,3 +98,9 @@ InitTestScene*.unity*
 # Auto-generated scenes by play mode tests
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
 .vscode/
+# Ignore TextMesh Pro default resources to prevent merge conflicts
+/[Aa]ssets/[Tt]ext[Mm]esh [Pp]ro/
+/[Aa]ssets/[Tt]ext[Mm]esh [Pp]ro.meta
+
+# Specifically targeting the auto-generated font assets if you want to keep the folder
+/[Aa]ssets/[Tt]ext[Mm]esh [Pp]ro/Resources/Fonts & Materials/*.asset
