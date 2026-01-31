@@ -170,6 +170,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   inputHandler: {fileID: 0}
   playerCamera: {fileID: 7899688849107824191}
+  playerUI: {fileID: 8253415465378350966}
   reviveRange: 3
   reviveTime: 5
   reviveTimeLimit: 30
@@ -669,3 +670,8 @@ MonoBehaviour:
   lowStaminaColor: {r: 0.5, g: 0, b: 0, a: 1}
   lowStaminaThreshold: 0.3
   hideWhenFull: 1
+--- !u!1 &8253415465378350966 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2663930571507900611, guid: b142d14b4ac39f14f82b443bb12f3f6e, type: 3}
+  m_PrefabInstance: {fileID: 6229088645553301429}
+  m_PrefabAsset: {fileID: 0}

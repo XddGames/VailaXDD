@@ -15,6 +15,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     [Header("References")]
     [SerializeField] private InputHandler inputHandler;
     [SerializeField] private Camera playerCamera;
+    [SerializeField] private GameObject playerUI; // Drag your player UI Canvas here
     private CharacterController characterController;
     private PlayerMask playerMask;
     [Header("Revive Settings")]
@@ -449,6 +450,12 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         // Only enable spectator camera for the LOCAL player who died
         if (photonView.IsMine)
         {
+            // Disable player UI
+            if (playerUI != null)
+            {
+                playerUI.SetActive(false);
+            }
+            
             if (spectatorCamera != null)
             {
                 spectatorCamera.StartSpectating();
@@ -681,6 +688,10 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     private void OnGUI()
     {
+        // Don't show UI when spectating
+        if (currentState == PlayerState.Spectating)
+            return;
+            
         if (playerBeingRevived != null)
         {
             float progress = reviveProgress / reviveTime;
