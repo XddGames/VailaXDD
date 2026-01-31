@@ -1,47 +1,81 @@
-using UnityEngine;
 using UnityEngine.Windows.Speech;
 using System;
 using System.Collections.Generic;
 using Photon.Pun;
+using UnityEngine;
+using Whisper;
 
-public class SpeechHandler : MonoBehaviour
+public class VoiceInput : MonoBehaviour
 {
-    private Dictionary<string, Action> commandMap;
-    private DictationRecognizer m_DictationRecognizer;
-    EnemyBase enemy;
+    public WhisperManager whisper;
+    private AudioClip recording;
 
-    void Start()
+    void Update()
     {
-        enemy = GameObject.FindAnyObjectByType<EnemyBase>();
-        commandMap = new Dictionary<string, Action>
+        if (Input.GetKeyDown(KeyCode.Space))
         {
-            { "Clanker", IncreaseMySuspicion },
-            { "Open the door", OpenLastDoorEasterEgg },
-        };
+            recording = Microphone.Start(null, false, 10, 16000); 
+            Debug.Log("Listening...");
+        }
 
-        m_DictationRecognizer = new DictationRecognizer();
-        m_DictationRecognizer.DictationResult += (text, confidence) =>
+        if (Input.GetKeyUp(KeyCode.Space))
         {
-            Debug.Log($"Player Said {text}");
-            // Check to see if player said something that is a command
-            if (commandMap.ContainsKey(text))
-            {
-                Debug.Log($"Player Said {text}. Command Exists");
-                commandMap[text].Invoke();
-            }
-        };
-
-        m_DictationRecognizer.Start();
+            Microphone.End(null);
+            Transcribe();
+        }
     }
 
-    void IncreaseMySuspicion()
+    private async void Transcribe()
     {
-        int playerId = (PhotonNetwork.IsMasterClient)? 0 : 1;
-        enemy.IncreaseSuspicion(playerId, 0.25f);
-    }
+        if (recording == null) return;
 
-    void OpenLastDoorEasterEgg()
-    {
+        Debug.Log("Processing...");
+        
+        var result = await whisper.GetTextAsync(recording);
+        
+        string playerText = result.Result; 
+        Debug.Log($"Player said: {playerText}");
 
     }
 }
+// public class SpeechHandler : MonoBehaviour
+// {
+//     private Dictionary<string, Action> commandMap;
+//     private DictationRecognizer m_DictationRecognizer;
+//     EnemyBase enemy;
+
+//     void Start()
+//     {
+//         enemy = GameObject.FindAnyObjectByType<EnemyBase>();
+//         commandMap = new Dictionary<string, Action>
+//         {
+//             { "Robot", IncreaseMySuspicion },
+//             { "Open the door", OpenLastDoorEasterEgg },
+//         };
+
+//         m_DictationRecognizer = new DictationRecognizer();
+//         m_DictationRecognizer.DictationResult += (text, confidence) =>
+//         {
+//             Debug.Log($"Player Said {text}");
+//             // Check to see if player said something that is a command
+//             if (commandMap.ContainsKey(text))
+//             {
+//                 Debug.Log($"Player Said {text}. Command Exists");
+//                 commandMap[text].Invoke();
+//             }
+//         };
+
+//         m_DictationRecognizer.Start();
+//     }
+
+//     void IncreaseMySuspicion()
+//     {
+//         int playerId = (PhotonNetwork.IsMasterClient)? 0 : 1;
+//         enemy.IncreaseSuspicion(0, 0.25f);
+//     }
+
+//     void OpenLastDoorEasterEgg()
+//     {
+
+//     }
+// }
