@@ -361,21 +361,35 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     private void HandleGraveyardInteraction()
     {
-        if (!inputHandler.interactInput || !lastInteractState)
+        if (!inputHandler.interactInput)
             return;
 
         if (currentGraveyardMinigame == null)
         {
             currentGraveyardMinigame = FindAnyObjectByType<GraveyardMinigame>();
+            if (currentGraveyardMinigame != null)
+            {
+                Debug.Log("[PlayerController] Found GraveyardMinigame!");
+            }
+            else
+            {
+                Debug.Log("[PlayerController] GraveyardMinigame not found in scene!");
+            }
         }
 
-        if (currentGraveyardMinigame != null && currentGraveyardMinigame.IsMinigameActive())
+        if (currentGraveyardMinigame != null)
         {
-            Gravestone nearbyGravestone = currentGraveyardMinigame.FindGravestoneInRange(transform.position);
+            Debug.Log($"[PlayerController] Minigame active: {currentGraveyardMinigame.IsMinigameActive()}");
             
-            if (nearbyGravestone != null)
+            if (currentGraveyardMinigame.IsMinigameActive())
             {
-                nearbyGravestone.OnClicked(this);
+                Gravestone nearbyGravestone = currentGraveyardMinigame.FindGravestoneInRange(transform.position);
+                
+                if (nearbyGravestone != null && !lastInteractState)
+                {
+                    Debug.Log($"[PlayerController] Clicking gravestone: {nearbyGravestone.DeceasedName}");
+                    nearbyGravestone.OnClicked(this);
+                }
             }
         }
     }

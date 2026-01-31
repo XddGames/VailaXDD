@@ -365,8 +365,7 @@ Transform:
   m_LocalPosition: {x: 847.0531, y: 299.74033, z: 687.25244}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 1230304220}
+  m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &275556164 stripped
@@ -1199,8 +1198,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gravestones:
-  - {fileID: 4145040778693320135, guid: d25b33002b0c3124f9e2f2af0399731d, type: 3}
-  - {fileID: 4145040778693320135, guid: 16ff7a79ea28ea94e971256462e7bed9, type: 3}
+  - {fileID: 1521344066}
+  - {fileID: 1417859562}
   interactRange: 3
   gravestoneLayerMask:
     serializedVersion: 2
@@ -1220,11 +1219,11 @@ Transform:
   m_GameObject: {fileID: 1230304218}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -384.234, y: -248.10522, z: -274.64847}
+  m_LocalPosition: {x: 462.8191, y: 51.6351, z: 412.60397}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 130231243}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1245955023
 PrefabInstance:
@@ -1471,6 +1470,17 @@ Transform:
   m_Children: []
   m_Father: {fileID: 515991693}
   m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
+--- !u!114 &1417859562 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4145040778693320135, guid: 16ff7a79ea28ea94e971256462e7bed9, type: 3}
+  m_PrefabInstance: {fileID: 1722283165}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f3231caea11cd724da23aedaf355a735, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &1476268632
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1547,6 +1557,17 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 669920980}
   m_SourcePrefab: {fileID: 100100000, guid: b943782774ab7be488f7ba8c690e16e8, type: 3}
+--- !u!114 &1521344066 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4145040778693320135, guid: d25b33002b0c3124f9e2f2af0399731d, type: 3}
+  m_PrefabInstance: {fileID: 1327712707}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f3231caea11cd724da23aedaf355a735, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1610761623
 GameObject:
   m_ObjectHideFlags: 0
@@ -2361,3 +2382,4 @@ SceneRoots:
   - {fileID: 1245955023}
   - {fileID: 1327712707}
   - {fileID: 1722283165}
+  - {fileID: 1230304220}

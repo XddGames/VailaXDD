@@ -1,5 +1,6 @@
 using UnityEngine;
 using Photon.Pun;
+using TMPro;
 
 [RequireComponent(typeof(Collider))]
 public class Gravestone : MonoBehaviourPunCallbacks
@@ -9,6 +10,7 @@ public class Gravestone : MonoBehaviourPunCallbacks
     [SerializeField] private Renderer gravestoneRenderer;
     [SerializeField] private Material normalMaterial;
     [SerializeField] private Material glowMaterial;
+    [SerializeField] private TextMeshPro nameText;
     
     private GraveyardMinigame minigameManager;
     private bool isGlowing = false;
@@ -22,25 +24,45 @@ public class Gravestone : MonoBehaviourPunCallbacks
         {
             gravestoneRenderer = GetComponent<Renderer>();
         }
+        
+        UpdateNameDisplay();
+    }
+    
+    private void UpdateNameDisplay()
+    {
+        if (nameText != null && !string.IsNullOrEmpty(deceasedName))
+        {
+            nameText.text = deceasedName;
+        }
+    }
+    
+    private void OnValidate()
+    {
+        UpdateNameDisplay();
     }
 
     public void Initialize(GraveyardMinigame manager, string name)
     {
         minigameManager = manager;
         deceasedName = name;
+        UpdateNameDisplay();
     }
 
     public void OnClicked(PlayerController player)
     {
+        Debug.Log($"[Gravestone] {deceasedName} OnClicked - Clickable: {isClickable}, Manager: {minigameManager != null}");
+        
         if (!isClickable || minigameManager == null)
             return;
 
         if (PhotonNetwork.IsConnected)
         {
+            Debug.Log($"[Gravestone] {deceasedName} - Sending RPC");
             photonView.RPC(nameof(RPC_ProcessClick), RpcTarget.AllBuffered, player.photonView.ViewID);
         }
         else
         {
+            Debug.Log($"[Gravestone] {deceasedName} - Processing click locally");
             ProcessClick();
         }
     }

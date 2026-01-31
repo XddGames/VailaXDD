@@ -42,25 +42,41 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
 
     private void InitializeMinigame()
     {
+        Debug.Log($"[GraveyardMinigame] Initializing with {gravestones.Count} gravestones");
+        
         foreach (var gravestone in gravestones)
         {
             gravestone.Initialize(this, gravestone.DeceasedName);
+            Debug.Log($"[GraveyardMinigame] Added gravestone: {gravestone.DeceasedName}");
         }
 
         sortedGravestones = gravestones.OrderBy(g => g.DeceasedName).ToList();
         
+        Debug.Log($"[GraveyardMinigame] Sorted order: {string.Join(", ", sortedGravestones.Select(g => g.DeceasedName))}");
+        
         minigameActive = true;
         currentIndex = 0;
         minigameCompleted = false;
+        
+        Debug.Log($"[GraveyardMinigame] Minigame initialized! Active: {minigameActive}");
     }
 
     public void OnGravestoneClicked(Gravestone clickedGravestone)
     {
+        Debug.Log($"[GraveyardMinigame] Gravestone clicked: {clickedGravestone.DeceasedName}");
+        
         if (!minigameActive || minigameCompleted)
+        {
+            Debug.Log($"[GraveyardMinigame] Minigame not active or completed. Active: {minigameActive}, Completed: {minigameCompleted}");
             return;
+        }
 
+        string expectedName = sortedGravestones[currentIndex].DeceasedName;
+        Debug.Log($"[GraveyardMinigame] Expected: {expectedName}, Got: {clickedGravestone.DeceasedName}");
+        
         if (sortedGravestones[currentIndex] == clickedGravestone)
         {
+            Debug.Log($"[GraveyardMinigame] CORRECT! Progress: {currentIndex + 1}/{sortedGravestones.Count}");
             clickedGravestone.SetGlowState(true);
             PlaySound(correctClickSound);
             
@@ -73,6 +89,7 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
         }
         else
         {
+            Debug.Log($"[GraveyardMinigame] WRONG! Resetting...");
             PlaySound(wrongClickSound);
             ResetMinigame();
         }
@@ -156,6 +173,8 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
     {
         Collider[] colliders = Physics.OverlapSphere(playerPosition, interactRange, gravestoneLayerMask);
         
+        Debug.Log($"[GraveyardMinigame] Found {colliders.Length} colliders in range");
+        
         float closestDistance = float.MaxValue;
         Gravestone closestGravestone = null;
 
@@ -165,12 +184,22 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
             if (gravestone != null)
             {
                 float distance = Vector3.Distance(playerPosition, col.transform.position);
+                Debug.Log($"[GraveyardMinigame] Found gravestone {gravestone.DeceasedName} at distance {distance}");
                 if (distance < closestDistance)
                 {
                     closestDistance = distance;
                     closestGravestone = gravestone;
                 }
             }
+        }
+
+        if (closestGravestone != null)
+        {
+            Debug.Log($"[GraveyardMinigame] Closest gravestone: {closestGravestone.DeceasedName}");
+        }
+        else
+        {
+            Debug.Log($"[GraveyardMinigame] No gravestone found in range");
         }
 
         return closestGravestone;

@@ -200,7 +200,7 @@ MonoBehaviour:
     m_Bits: 128
   gravestoneLayerMask:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 256
 --- !u!114 &6725692040602590194
 MonoBehaviour:
   m_ObjectHideFlags: 0
