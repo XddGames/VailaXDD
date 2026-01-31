@@ -40,6 +40,9 @@ MonoBehaviour:
   - Fire
   - RespawnSpaceship
   - SyncMaskState
+  - RPC_CancelRevive
+  - RPC_CompleteRevive
+  - RPC_StartRevive
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 0

@@ -1,12 +1,12 @@
 using UnityEngine;
 using Photon.Pun;
-    public enum PlayerState
-    {
-        Alive,
-        WaitingRevive,
-        Spectating,
-        SinglePlayerDead
-    }
+public enum PlayerState
+{
+    Alive,
+    WaitingRevive,
+    Spectating,
+    SinglePlayerDead
+}
 [RequireComponent(typeof(CharacterController))]
 [RequireComponent(typeof(PlayerMask))]
 
@@ -17,6 +17,13 @@ public class PlayerController : MonoBehaviourPunCallbacks
     [SerializeField] private Camera playerCamera;
     private CharacterController characterController;
     private PlayerMask playerMask;
+    [Header("Revive Settings")]
+    [SerializeField] private float reviveRange = 3f;
+    [SerializeField] private float reviveTime = 5f; // Time to revive in seconds
+    [SerializeField] private LayerMask playerLayerMask; // Set to Player layer
+    private float reviveProgress = 0f;
+    private PlayerController playerBeingRevived = null;
+    private bool isBeingRevived = false;
 
     [Header("Movement Settings")]
     [SerializeField] private float walkSpeed = 5f;
@@ -49,12 +56,12 @@ public class PlayerController : MonoBehaviourPunCallbacks
     private bool isGrounded;
     private bool lastInteractState;
     private float lastInteractionTime;
-    
+
     private float currentStamina;
     private float lastSprintTime;
     private PlayerState currentState;
 
-     public PlayerState GetCurrentState()
+    public PlayerState GetCurrentState()
     {
         return currentState;
     }
@@ -122,6 +129,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
                 HandleInteraction();
                 HandleCameraRotation();
                 HandleStamina();
+                HandleRevive();
                 break;
             case PlayerState.WaitingRevive:
                 HandleCameraRotation();
@@ -131,15 +139,144 @@ public class PlayerController : MonoBehaviourPunCallbacks
             case PlayerState.SinglePlayerDead:
                 break;
         }
-        
+
     }
 
+    private void HandleRevive()
+    {
+        if (!inputHandler.interactInput)
+        {
+            if (playerBeingRevived != null)
+            {
+                photonView.RPC(nameof(RPC_CancelRevive), RpcTarget.All, playerBeingRevived.photonView.ViewID);
+                playerBeingRevived = null;
+                reviveProgress = 0f;
+            }
+            return;
+        }
+
+        if (playerBeingRevived == null)
+        {
+            PlayerController downedPlayer = FindDownedPlayerInRange();
+            if (downedPlayer != null)
+            {
+                playerBeingRevived = downedPlayer;
+                reviveProgress = 0f;
+
+                // Tell everyone we're starting to revive this player
+                photonView.RPC(nameof(RPC_StartRevive), RpcTarget.All, downedPlayer.photonView.ViewID);
+            }
+            return;
+        }
+
+        // Check if still in range
+        float distance = Vector3.Distance(transform.position, playerBeingRevived.transform.position);
+        if (distance > reviveRange)
+        {
+            // Too far away, cancel
+            photonView.RPC(nameof(RPC_CancelRevive), RpcTarget.All, playerBeingRevived.photonView.ViewID);
+            playerBeingRevived = null;
+            reviveProgress = 0f;
+            return;
+        }
+
+        // Continue reviving
+        reviveProgress += Time.deltaTime;
+
+        if (reviveProgress >= reviveTime)
+        {
+            // Revive complete!
+            photonView.RPC(nameof(RPC_CompleteRevive), RpcTarget.All, playerBeingRevived.photonView.ViewID);
+            playerBeingRevived = null;
+            reviveProgress = 0f;
+        }
+
+
+    }
+    private PlayerController FindDownedPlayerInRange()
+    {
+        Collider[] colliders = Physics.OverlapSphere(transform.position, reviveRange, playerLayerMask);
+
+        foreach (Collider col in colliders)
+        {
+            if (col.transform == transform) continue; // Skip self
+
+            PlayerController pc = col.GetComponent<PlayerController>();
+            if (pc != null && pc.GetCurrentState() == PlayerState.WaitingRevive && !pc.isBeingRevived)
+            {
+                return pc;
+            }
+        }
+
+        return null;
+    }
+
+    [PunRPC]
+    private void RPC_StartRevive(int targetViewID)
+    {
+        PhotonView targetView = PhotonView.Find(targetViewID);
+        if (targetView != null)
+        {
+            PlayerController target = targetView.GetComponent<PlayerController>();
+            if (target != null)
+            {
+                target.isBeingRevived = true;
+                Debug.Log($"Started reviving {target.name}");
+            }
+        }
+    }
+
+    [PunRPC]
+    private void RPC_CancelRevive(int targetViewID)
+    {
+        PhotonView targetView = PhotonView.Find(targetViewID);
+        if (targetView != null)
+        {
+            PlayerController target = targetView.GetComponent<PlayerController>();
+            if (target != null)
+            {
+                target.isBeingRevived = false;
+                Debug.Log($"Cancelled reviving {target.name}");
+            }
+        }
+    }
+
+    [PunRPC]
+    private void RPC_CompleteRevive(int targetViewID)
+    {
+        PhotonView targetView = PhotonView.Find(targetViewID);
+        if (targetView != null)
+        {
+            PlayerController target = targetView.GetComponent<PlayerController>();
+            if (target != null)
+            {
+                target.ChangeState(PlayerState.Alive);
+                target.isBeingRevived = false;
+                Debug.Log($"Revived {target.name}!");
+            }
+        }
+    }
+
+    public float GetReviveProgress()
+    {
+        return reviveProgress / reviveTime;
+    }
+
+    public bool IsReviving()
+    {
+        return playerBeingRevived != null;
+    }
+
+    public bool IsBeingRevived()
+    {
+        return isBeingRevived;
+    }
     public PlayerState ChangeState(PlayerState newState)
     {
         PlayerState tempState = currentState;
         currentState = newState;
         return tempState;
-        
+
     }
 
     private void HandleGroundCheck()
@@ -184,7 +321,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
         Vector3 targetVelocity = moveDirection * currentSpeed;
 
         if (isGrounded)
-        {            
+        {
             if (input.sqrMagnitude < INPUT_THRESHOLD * INPUT_THRESHOLD)
             {
                 float frictionFactor = Mathf.Max(0f, 1f - groundFriction * Time.deltaTime);
@@ -336,4 +473,19 @@ public class PlayerController : MonoBehaviourPunCallbacks
     {
         return CalculateSpeed();
     }
+
+    private void OnGUI()
+{
+    if (playerBeingRevived != null)
+    {
+        float progress = reviveProgress / reviveTime;
+        GUI.Box(new Rect(Screen.width / 2 - 100, Screen.height - 100, 200, 30), "");
+        GUI.Box(new Rect(Screen.width / 2 - 100, Screen.height - 100, 200 * progress, 30), $"Reviving... {progress * 100:F0}%");
+    }
+    
+    if (isBeingRevived)
+    {
+        GUI.Label(new Rect(Screen.width / 2 - 100, Screen.height / 2, 200, 30), "Being revived...");
+    }
+}
 }
