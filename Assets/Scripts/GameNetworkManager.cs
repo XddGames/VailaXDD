@@ -44,7 +44,7 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
             }
             
             GameObject enemy = PhotonNetwork.InstantiateRoomObject(
-                "EnemyBase", // Your actual enemy prefab name (must be in Resources folder)
+                "EnemyPrefab", // Your actual enemy prefab name (must be in Resources folder)
                 enemySpawnPos, 
                 Quaternion.identity
             );
