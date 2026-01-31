@@ -55,10 +55,8 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     private void Start()
     {
-        characterController = GetComponent<CharacterController>();
-        playerMask = GetComponent<PlayerMask>();
-        /*if (!photonView.IsMine && !PhotonNetwork.IsConnected)
-        {
+        //if (!photonView.IsMine && PhotonNetwork.IsConnected)
+       /* {
             if (playerCamera != null)
                 playerCamera.enabled = false;
             
@@ -74,7 +72,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
         if (inputHandler == null)
         {
-            inputHandler = FindObjectOfType<InputHandler>();
+            inputHandler = FindAnyObjectByType<InputHandler>();
             if (inputHandler == null)
             {
                 Debug.LogError("InputHandler not found! PlayerController disabled.");
