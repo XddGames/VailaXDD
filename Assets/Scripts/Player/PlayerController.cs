@@ -73,36 +73,53 @@ public class PlayerController : MonoBehaviourPunCallbacks
         currentStamina = maxStamina;
     }
 
-    private void Start()
+   private void Start()
+{
+    // CRITICAL: Only control YOUR player
+    if (!photonView.IsMine && PhotonNetwork.IsConnected)
     {
-        if (!photonView.IsMine && PhotonNetwork.IsConnected)
-         {
-             if (playerCamera != null)
-                 playerCamera.enabled = false;
+        if (playerCamera != null)
+            playerCamera.enabled = false;
 
-             if (inputHandler != null)
-                 inputHandler.enabled = false;
+        if (inputHandler != null)
+            inputHandler.enabled = false;
 
-             enabled = false;
-             return;
-         }
+        // Disable the entire controller for remote players
+        enabled = false;
+        return;
+    }
 
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+    // YOU ARE THE LOCAL PLAYER - Setup controls
+    Debug.Log("LOCAL PLAYER - Setting up controls");
+    
+    Cursor.lockState = CursorLockMode.Locked;
+    Cursor.visible = false;
 
+    // Find or use existing InputHandler
+    if (inputHandler == null)
+    {
+        inputHandler = FindAnyObjectByType<InputHandler>();
         if (inputHandler == null)
         {
-            inputHandler = FindAnyObjectByType<InputHandler>();
-            if (inputHandler == null)
-            {
-                Debug.LogError("InputHandler not found! PlayerController disabled.");
-                enabled = false;
-                return;
-            }
+            Debug.LogError("InputHandler not found! PlayerController disabled.");
+            enabled = false;
+            return;
         }
+    }
 
+    // Make sure InputHandler is enabled for local player
+    if (inputHandler != null)
+    {
+        inputHandler.enabled = true;
+    }
+
+    // Setup camera for local player
+    if (playerCamera == null)
+    {
+        playerCamera = GetComponentInChildren<Camera>();
         if (playerCamera == null)
         {
+            Debug.LogError("Camera not found in children! Searching scene...");
             playerCamera = Camera.main;
             if (playerCamera == null)
             {
@@ -112,6 +129,19 @@ public class PlayerController : MonoBehaviourPunCallbacks
             }
         }
     }
+    
+    // Enable camera for local player
+    playerCamera.enabled = true;
+    
+    // Make this camera the audio listener
+    AudioListener listener = playerCamera.GetComponent<AudioListener>();
+    if (listener != null)
+    {
+        listener.enabled = true;
+    }
+    
+    Debug.Log($"Player setup complete. Camera: {playerCamera.name}, InputHandler: {inputHandler.name}");
+}
 
     private void Update()
     {

@@ -15,7 +15,6 @@ GameObject:
   - component: {fileID: 3502940939506405586}
   - component: {fileID: 7877685279525965666}
   - component: {fileID: 8440374821185488664}
-  - component: {fileID: 4541471731439077351}
   - component: {fileID: 6725692040602590194}
   - component: {fileID: 7140305240253890898}
   m_Layer: 0
@@ -167,7 +166,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6d0bbf30d5723c948b662d99b82234b2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  inputHandler: {fileID: 4541471731439077351}
+  inputHandler: {fileID: 0}
   playerCamera: {fileID: 7899688849107824191}
   reviveRange: 3
   reviveTime: 5
@@ -190,19 +189,6 @@ MonoBehaviour:
   staminaRegenDelay: 1
   mouseSensitivity: 0.2
   maxLookAngle: 75.7
---- !u!114 &4541471731439077351
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 971421174549903251}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2ae5cd4c8626cc542b1344562ac6acc3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  playerControls: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
 --- !u!114 &6725692040602590194
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -221,7 +207,8 @@ MonoBehaviour:
   Synchronization: 3
   OwnershipTransfer: 0
   observableSearch: 2
-  ObservedComponents: []
+  ObservedComponents:
+  - {fileID: 7140305240253890898}
   sceneViewId: 0
   InstantiationId: 0
   isRuntimeInstantiated: 0
