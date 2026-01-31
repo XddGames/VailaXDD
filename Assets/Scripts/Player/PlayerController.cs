@@ -83,6 +83,11 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     private PlayerState currentState;
     private bool infiniteStamina = false;
     private bool lastJumpInput = false;
+    private bool speedToggleActive = false;
+    private float savedWalkSpeed;
+    private float savedSprintSpeed;
+    [SerializeField] private float toggleSpeed = 25f; // speed used when toggled on
+
 
     public PlayerState GetCurrentState()
     {
@@ -196,6 +201,11 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             {
                 currentStamina = maxStamina;
             }
+        }
+
+        if (Input.GetKeyDown(KeyCode.C))
+        {
+            ToggleSpeed();
         }
 
         switch (currentState)
@@ -362,32 +372,24 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     private void HandleGraveyardInteraction()
     {
-        UnityEngine.Debug.Log($"[GRAVE] HandleGraveyardInteraction chamado - interactInput: {inputHandler.interactInput}");
-
         bool pressEdge = inputHandler.interactInput && !lastInteractStateForGrave;
         lastInteractStateForGrave = inputHandler.interactInput;
 
         if (!pressEdge)
             return;
 
-        UnityEngine.Debug.Log("[GRAVE] E PRESSIONADO (rising edge)!");
 
         if (currentGraveyardMinigame == null)
         {
             currentGraveyardMinigame = FindAnyObjectByType<GraveyardMinigame>();
-            UnityEngine.Debug.Log($"[GRAVE] Minigame encontrado: {currentGraveyardMinigame != null}");
         }
 
         if (currentGraveyardMinigame != null && currentGraveyardMinigame.IsMinigameActive())
         {
-            UnityEngine.Debug.Log($"[GRAVE] Procurando gravestone na posição: {transform.position}");
             Gravestone nearbyGravestone = currentGraveyardMinigame.FindGravestoneInRange(transform.position);
-            
-            UnityEngine.Debug.Log($"[GRAVE] Gravestone encontrada: {nearbyGravestone != null}");
-            
+                        
             if (nearbyGravestone != null)
             {
-                UnityEngine.Debug.Log($"[GRAVE] CLICANDO NA GRAVESTONE: {nearbyGravestone.DeceasedName}");
                 nearbyGravestone.OnClicked(this);
             }
         }
@@ -729,6 +731,28 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     {
         return CalculateSpeed();
     }
+
+    // Toggle player's walk/sprint speed between normal and `toggleSpeed`.
+    private void ToggleSpeed()
+    {
+        speedToggleActive = !speedToggleActive;
+        if (speedToggleActive)
+        {
+            savedWalkSpeed = walkSpeed;
+            savedSprintSpeed = sprintSpeed;
+            walkSpeed = toggleSpeed;
+            sprintSpeed = toggleSpeed;
+        }
+        else
+        {
+            walkSpeed = savedWalkSpeed;
+            sprintSpeed = savedSprintSpeed;
+        }
+    }
+
+
+
+
 
     private void OnGUI()
     {
