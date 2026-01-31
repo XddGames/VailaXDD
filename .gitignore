@@ -103,4 +103,6 @@ InitTestScene*.unity*
 /[Aa]ssets/[Tt]ext[Mm]esh [Pp]ro.meta
 
 # Specifically targeting the auto-generated font assets if you want to keep the folder
-/[Aa]ssets/[Tt]ext[Mm]esh [Pp]ro/Resources/Fonts & Materials/*.asset
+/[Aa]ssets/[Tt]ext[Mm]esh [Pp]ro/Resources/Fonts & Materials/*.assetAssets/TerrainTexturesPackFree/
+
+/Assets/TerrainTexturesPackFree/
