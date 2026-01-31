@@ -620,8 +620,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             velocity.y = Mathf.Sqrt(jumpForce * JUMP_GRAVITY_MULTIPLIER * Mathf.Abs(gravity));
             if (!infiniteStamina)
             {
-                UnityEngine.Debug.Log("CurrentStamina: " + currentStamina);
-                UnityEngine.Debug.Log("JumpStaminaCost: " + jumpStaminaCost);
                 currentStamina -= jumpStaminaCost;
                 currentStamina = Mathf.Max(0f, currentStamina);
                 lastSprintTime = Time.time;
