@@ -1,5 +1,6 @@
 using UnityEngine;
 using Photon.Pun;
+using System.Diagnostics;
 public enum PlayerState
 {
     Alive,
@@ -76,6 +77,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     private float lastSprintTime;
     private PlayerState currentState;
     private bool infiniteStamina = false;
+    private bool lastJumpInput = false;
 
     public PlayerState GetCurrentState()
     {
@@ -610,7 +612,10 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     private void HandleJump()
     {
-        if (inputHandler.jumpInput && isGrounded && (infiniteStamina || currentStamina >= jumpStaminaCost))
+        bool jumpPressed = inputHandler.jumpInput && !lastJumpInput;
+        lastJumpInput = inputHandler.jumpInput;
+
+        if (jumpPressed && isGrounded && (infiniteStamina || currentStamina >= jumpStaminaCost))
         {
             velocity.y = Mathf.Sqrt(jumpForce * JUMP_GRAVITY_MULTIPLIER * Mathf.Abs(gravity));
             if (!infiniteStamina)
