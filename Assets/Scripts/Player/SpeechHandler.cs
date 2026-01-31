@@ -44,7 +44,6 @@ public class VoiceInput : MonoBehaviour
     {
         foreach (var (cmd, fn) in _commandMap)
         {
-            Debug.Log($"Checking: {command}.Contains({cmd});");
             if (command.Contains(cmd))
             {
                 Debug.Log($"Interpreted command: {command}");
@@ -76,7 +75,7 @@ public class VoiceInput : MonoBehaviour
     void IncreaseMySuspicion()
     {
         int playerId = (PhotonNetwork.IsMasterClient)? 0 : 1;
-        _enemy.IncreaseSuspicion(0, 0.25f);
+        _enemy.IncreaseSuspicion(playerId, 0.25f);
     }
 
     void OpenLastDoorEasterEgg()
