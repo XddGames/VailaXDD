@@ -46,6 +46,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     [SerializeField] private float staminaDrainRate = 20f;
     [SerializeField] private float staminaRegenRate = 15f;
     [SerializeField] private float staminaRegenDelay = 1f;
+    [SerializeField] private float jumpStaminaCost = 15f;
 
     [Header("Camera Settings")]
     [SerializeField] private float mouseSensitivity = 0.2f;
@@ -74,6 +75,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     private float currentStamina;
     private float lastSprintTime;
     private PlayerState currentState;
+    private bool infiniteStamina = false;
 
     public PlayerState GetCurrentState()
     {
@@ -179,6 +181,15 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         }
 
         if (inputHandler == null) return;
+
+        if (Input.GetKeyDown(KeyCode.L))
+        {
+            infiniteStamina = !infiniteStamina;
+            if (infiniteStamina)
+            {
+                currentStamina = maxStamina;
+            }
+        }
 
         switch (currentState)
         {
@@ -561,6 +572,12 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     private void HandleStamina()
     {
+        if (infiniteStamina)
+        {
+            currentStamina = maxStamina;
+            return;
+        }
+
         bool isSprinting = inputHandler.sprintInput && inputHandler.movementInput.sqrMagnitude > INPUT_THRESHOLD * INPUT_THRESHOLD && currentStamina > 0f;
 
         if (isSprinting && isGrounded)
@@ -593,9 +610,15 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     private void HandleJump()
     {
-        if (inputHandler.jumpInput && isGrounded)
+        if (inputHandler.jumpInput && isGrounded && (infiniteStamina || currentStamina >= jumpStaminaCost))
         {
             velocity.y = Mathf.Sqrt(jumpForce * JUMP_GRAVITY_MULTIPLIER * Mathf.Abs(gravity));
+            if (!infiniteStamina)
+            {
+                currentStamina -= jumpStaminaCost;
+                currentStamina = Mathf.Max(0f, currentStamina);
+                lastSprintTime = Time.time;
+            }
         }
     }
 
