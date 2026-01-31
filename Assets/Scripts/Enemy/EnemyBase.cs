@@ -155,18 +155,7 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
     void Awake()
     {
         pv = GetComponent<PhotonView>();
-
         agent = GetComponent<NavMeshAgent>();
-        if (agent == null)
-        {
-            Debug.LogError("NavMeshAgent component not found on " + gameObject.name);
-        }
-        else
-        {
-            Debug.Log("NavMeshAgent found and initialized");
-        }
-
-        // Don't initialize suspicionLevels here anymore
 
         // Configure agent to prevent sliding
         if (agent != null)
@@ -180,8 +169,6 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
             agent.updatePosition = true;
             agent.updateUpAxis = true;
             agent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
-
-            Debug.Log("NavMeshAgent configured - Speed limit: " + agent.speed);
         }
 
         Rigidbody rb = GetComponent<Rigidbody>();
@@ -189,7 +176,6 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         {
             rb.isKinematic = true;
             rb.interpolation = RigidbodyInterpolation.Interpolate;
-            Debug.Log("Rigidbody set to kinematic");
         }
     }
 
@@ -199,7 +185,6 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         FindAllPlayers();
 
         allGenerators.AddRange(FindObjectsOfType<PowerGenerator>());
-        Debug.Log($"Enemy found {allGenerators.Count} generators to sabotage.");
 
         // Refresh player list after a short delay (in case players spawn late)
         Invoke(nameof(FindAllPlayers), 1f);
@@ -266,10 +251,7 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
     void UpdateTeleporting()
     {
         if (agent == null)
-        {
-            Debug.LogError("NavMeshAgent is null!");
             return;
-        }
 
         agent.isStopped = true;
 
@@ -299,7 +281,6 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         teleportTimer += Time.deltaTime;
         if (teleportTimer >= teleportInterval)
         {
-            Debug.Log($"Teleport timer reached {teleportTimer:F1}s - attempting teleport");
             Teleport();
             teleportTimer = 0f;
         }
@@ -321,8 +302,6 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
 
     void Teleport()
     {
-        Debug.Log("=== TELEPORT CALLED ===");
-
         if (agent == null)
         {
             Debug.LogError("Agent is null in Teleport!");
@@ -343,7 +322,7 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
 
         if (Players == null || Players.Count == 0)
         {
-            Debug.LogWarning("No players found for teleporting!");
+            Debug.LogError("No players found for teleporting!");
             return;
         }
 
@@ -354,7 +333,6 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
             if (Players[i] != null)
             {
                 randomPlayer = Players[i];
-                Debug.Log($"Found valid player at index {i}: {randomPlayer.name}");
                 break;
             }
         }
@@ -372,8 +350,6 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         Vector3 offset = Quaternion.Euler(0, randomAngle, 0) * Vector3.forward * randomDistance;
         Vector3 targetPoint = randomPlayer.position + offset;
 
-        Debug.Log($"Teleport target: {targetPoint} (distance to player: {randomDistance:F1}m, angle: {randomAngle:F0}°)");
-
         // Try multiple times with different search parameters
         bool teleported = false;
         int navMaskAll = -1; // Use -1 instead of NavMesh.AllAreas for better compatibility
@@ -386,16 +362,12 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
             // Sample from player's height instead of adding 50
             pos.y = randomPlayer.position.y + 10f;
 
-            Debug.Log($"Attempt {attempt + 1}: Searching for NavMesh near: {pos}");
-
             // Try progressively larger search radii
             float[] searchRadii = { 50f, 100f, 200f };
             foreach (float searchRadius in searchRadii)
             {
                 if (NavMesh.SamplePosition(pos, out NavMeshHit hit, searchRadius, navMaskAll))
                 {
-                    Debug.Log($"<color=green>NavMesh FOUND at: {hit.position} (search radius: {searchRadius}m)</color>");
-
                     // Add bigger height offset to prevent spawning inside floor
                     Vector3 warpPosition = hit.position;
                     warpPosition.y += 2f; // Lift 2 meters above NavMesh surface (increased from 1m)
@@ -406,7 +378,6 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
                         agent.enabled = true;
                         agent.isStopped = false;
 
-                        Debug.Log($"<color=green>WARP SUCCEEDED! New position: {transform.position}, On NavMesh: {agent.isOnNavMesh}</color>");
                         teleported = true;
                         break;
                     }
@@ -417,15 +388,13 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
                 }
                 else
                 {
-                    Debug.Log($"No NavMesh found with {searchRadius}m search radius");
+                    Debug.LogWarning($"No NavMesh found with {searchRadius}m search radius");
                 }
             }
         }
 
         if (!teleported)
-        {
             Debug.LogError($"<color=red>TELEPORT COMPLETELY FAILED after 5 attempts! NavMesh might not be baked on terrain. Enemy staying at: {transform.position}</color>");
-        }
     }
 
     // ===== OBSERVING =====
@@ -478,7 +447,7 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
             float effectiveSuspicionGain = distanceBasedGain * maskEffect * Time.deltaTime;
             
             // Debug log suspicion gain
-            if (Time.frameCount % 60 == 0) // Every second
+            if (Time.frameCount % 60 == 0 && false) // Every second
             {
                 Debug.Log($"<color=yellow>Observing {target.name} (idx {idx}): dist={distance:F1}m, suspicion={suspicionLevels[idx]:F2}, gain={effectiveSuspicionGain:F4}/frame, maskEffect={maskEffect:F2}</color>");
             }
@@ -511,7 +480,6 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         Transform mostSus = GetMostSuspicious();
         if (mostSus == null)
         {
-            Debug.Log("No suspicious player found, returning to teleporting");
             state = EnemyState.Teleporting;
             return;
         }
@@ -558,7 +526,6 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
 
         if (patrolPoints.Count == 0)
         {
-            Debug.Log("Generating patrol points");
             GeneratePatrol(mostSus.position);
         }
 
@@ -566,7 +533,7 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         {
             agent.SetDestination(patrolPoints[patrolIndex]);
 
-            if (Time.frameCount % 60 == 0) // Log every 60 frames
+            if (Time.frameCount % 60 == 0 && false) // Log every 60 frames
             {
                 Debug.Log($"Patrolling - Point {patrolIndex}/{patrolPoints.Count}, Distance: {agent.remainingDistance:F1}m, Speed: {agent.speed}");
             }
@@ -596,7 +563,6 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         Transform nearest = GetNearestInRange(observeRange);
         if (nearest != null)
         {
-            Debug.Log("Saw player while sabotaging! Aborting sabotage.");
             state = EnemyState.Observing;
             target = nearest;
             return;
@@ -652,12 +618,11 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         Transform mostSus = GetMostSuspicious();
         if (mostSus == null)
         {
-            Debug.Log("UpdateChasing: No suspicious player found");
             state = EnemyState.Teleporting;
             return;
         }
 
-        if (Time.frameCount % 60 == 0) // Log every second
+        if (Time.frameCount % 60 == 0 && false) // Log every second
         {
             Debug.Log($"Chasing {mostSus.name} at distance {Vector3.Distance(transform.position, mostSus.position):F1}m");
         }
@@ -754,7 +719,7 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         Transform nearest = null;
         float minDist = range;
         
-        if (Time.frameCount % 120 == 0) // Every 2 seconds
+        if (Time.frameCount % 120 == 0 && false) // Every 2 seconds
         {
             Debug.Log($"<color=magenta>GetNearestInRange: Checking {Players.Count} players within {range}m</color>");
         }
@@ -770,7 +735,7 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
 
             float d = Vector3.Distance(transform.position, p.position);
             
-            if (Time.frameCount % 120 == 0)
+            if (Time.frameCount % 120 == 0 && false)
             {
                 Debug.Log($"<color=magenta>  Player {p.name}: distance={d:F1}m, alive={pc != null && pc.GetCurrentState() == PlayerState.Alive}</color>");
             }
@@ -782,7 +747,7 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
             }
         }
         
-        if (Time.frameCount % 120 == 0 && nearest != null)
+        if (Time.frameCount % 120 == 0 && nearest != null && false)
         {
             Debug.Log($"<color=magenta>Nearest player: {nearest.name} at {minDist:F1}m</color>");
         }

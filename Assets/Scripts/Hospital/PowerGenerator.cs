@@ -14,8 +14,6 @@ public class PowerGenerator : MonoBehaviourPun
     public void RPC_SetState(bool state)
     {
         IsOn = state;
-        Debug.Log($"Generator {(IsOn ? "Started" : "Stopped")}!");
-        
         OnStateChanged?.Invoke(IsOn);
     }
 
