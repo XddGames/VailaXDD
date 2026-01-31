@@ -186,11 +186,12 @@ MonoBehaviour:
   airControlPercent: 1
   groundMask:
     serializedVersion: 2
-    m_Bits: 8
+    m_Bits: 264
   maxStamina: 100
   staminaDrainRate: 20
   staminaRegenRate: 15
   staminaRegenDelay: 1
+  jumpStaminaCost: 15
   mouseSensitivity: 0.2
   maxLookAngle: 75.7
   interactRange: 3

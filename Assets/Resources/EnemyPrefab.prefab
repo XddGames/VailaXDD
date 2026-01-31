@@ -147,6 +147,10 @@ MonoBehaviour:
   sabotageMaxTeleportRange: 50
   suspicionSystem: {fileID: 0}
   showDebug: 1
+  obstacleMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  eyeHeight: 1.7
 --- !u!195 &899136641117336230
 NavMeshAgent:
   m_ObjectHideFlags: 0
