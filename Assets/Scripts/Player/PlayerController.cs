@@ -49,7 +49,9 @@ public class PlayerController : MonoBehaviourPunCallbacks
     private const float INPUT_THRESHOLD = 0.1f;
     private const float JUMP_GRAVITY_MULTIPLIER = 1.5f;
     private const float INTERACTION_COOLDOWN = 0.5f;
-
+    private Vector3 networkPosition;
+    private Quaternion networkRotation;
+    private Vector3 networkVelocity;
     private Vector3 velocity;
     private Vector3 horizontalVelocity;
     private float verticalRotation = 0f;
@@ -73,82 +75,107 @@ public class PlayerController : MonoBehaviourPunCallbacks
         currentStamina = maxStamina;
     }
 
-   private void Start()
-{
-    // CRITICAL: Only control YOUR player
-    if (!photonView.IsMine && PhotonNetwork.IsConnected)
+    private void Start()
     {
-        if (playerCamera != null)
-            playerCamera.enabled = false;
-
-        if (inputHandler != null)
-            inputHandler.enabled = false;
-
-        // Disable the entire controller for remote players
-        enabled = false;
-        return;
-    }
-
-    // YOU ARE THE LOCAL PLAYER - Setup controls
-    Debug.Log("LOCAL PLAYER - Setting up controls");
-    
-    Cursor.lockState = CursorLockMode.Locked;
-    Cursor.visible = false;
-
-    // Find or use existing InputHandler
-    if (inputHandler == null)
-    {
-        inputHandler = FindAnyObjectByType<InputHandler>();
-        if (inputHandler == null)
+        // Setup for both local and remote players
+        if (photonView.IsMine && PhotonNetwork.IsConnected)
         {
-            Debug.LogError("InputHandler not found! PlayerController disabled.");
-            enabled = false;
-            return;
-        }
-    }
+            // LOCAL PLAYER - Setup controls
+            Debug.Log("LOCAL PLAYER - Setting up controls");
 
-    // Make sure InputHandler is enabled for local player
-    if (inputHandler != null)
-    {
-        inputHandler.enabled = true;
-    }
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
 
-    // Setup camera for local player
-    if (playerCamera == null)
-    {
-        playerCamera = GetComponentInChildren<Camera>();
-        if (playerCamera == null)
-        {
-            Debug.LogError("Camera not found in children! Searching scene...");
-            playerCamera = Camera.main;
+            // Find or use existing InputHandler
+            if (inputHandler == null)
+            {
+                inputHandler = FindAnyObjectByType<InputHandler>();
+                if (inputHandler == null)
+                {
+                    Debug.LogError("InputHandler not found! PlayerController disabled.");
+                    enabled = false;
+                    return;
+                }
+            }
+
+            inputHandler.enabled = true;
+
+            // Setup camera for local player
             if (playerCamera == null)
             {
-                Debug.LogError("Main Camera not found! PlayerController disabled.");
-                enabled = false;
-                return;
+                playerCamera = GetComponentInChildren<Camera>();
+                if (playerCamera == null)
+                {
+                    playerCamera = Camera.main;
+                }
             }
+
+            if (playerCamera != null)
+            {
+                playerCamera.enabled = true;
+
+                AudioListener listener = playerCamera.GetComponent<AudioListener>();
+                if (listener != null)
+                {
+                    listener.enabled = true;
+                }
+            }
+
+            Debug.Log($"Player setup complete. Camera: {playerCamera?.name}, InputHandler: {inputHandler?.name}");
+        }
+        else if (PhotonNetwork.IsConnected)
+        {
+            // REMOTE PLAYER - Disable camera and input only
+            Debug.Log("REMOTE PLAYER - Disabling camera and input");
+
+            if (playerCamera != null)
+            {
+                playerCamera.enabled = false;
+            }
+
+            Camera cam = GetComponentInChildren<Camera>();
+            if (cam != null)
+            {
+                cam.enabled = false;
+            }
+
+            AudioListener listener = GetComponentInChildren<AudioListener>();
+            if (listener != null)
+            {
+                listener.enabled = false;
+            }
+
+            if (inputHandler != null)
+            {
+                inputHandler.enabled = false;
+            }
+
+            // Keep the controller enabled but it won't process input
+            // This allows gravity and physics to still work for visual sync
         }
     }
-    
-    // Enable camera for local player
-    playerCamera.enabled = true;
-    
-    // Make this camera the audio listener
-    AudioListener listener = playerCamera.GetComponent<AudioListener>();
-    if (listener != null)
+    private void HandleRemotePlayerPhysics()
     {
-        listener.enabled = true;
-    }
-    
-    Debug.Log($"Player setup complete. Camera: {playerCamera.name}, InputHandler: {inputHandler.name}");
-}
+        if (characterController == null || !characterController.enabled) return;
 
+        // Smoothly move towards network position
+        Vector3 targetPosition = Vector3.Lerp(transform.position, networkPosition, Time.deltaTime * 10f);
+        Vector3 movement = targetPosition - transform.position;
+
+        characterController.Move(movement);
+        transform.rotation = Quaternion.Lerp(transform.rotation, networkRotation, Time.deltaTime * 10f);
+    }
     private void Update()
     {
-        if (!photonView.IsMine && PhotonNetwork.IsConnected) return;
+        // Handle remote players differently
+        if (!photonView.IsMine && PhotonNetwork.IsConnected)
+        {
+            // Remote players still need gravity applied for visual sync
+            HandleRemotePlayerPhysics();
+            return;
+        }
+
         if (inputHandler == null) return;
-
-
 
         switch (currentState)
         {
@@ -169,7 +196,6 @@ public class PlayerController : MonoBehaviourPunCallbacks
             case PlayerState.SinglePlayerDead:
                 break;
         }
-
     }
 
     private void HandleRevive()
@@ -239,6 +265,32 @@ public class PlayerController : MonoBehaviourPunCallbacks
         }
 
         return null;
+    }
+
+    public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
+    {
+        if (stream.IsWriting)
+        {
+            // Local player - send data to network
+            stream.SendNext(transform.position);
+            stream.SendNext(transform.rotation);
+            stream.SendNext(velocity);
+            stream.SendNext((int)currentState);
+        }
+        else
+        {
+            // Remote player - receive data from network
+            networkPosition = (Vector3)stream.ReceiveNext();
+            networkRotation = (Quaternion)stream.ReceiveNext();
+            networkVelocity = (Vector3)stream.ReceiveNext();
+
+            int stateInt = (int)stream.ReceiveNext();
+            currentState = (PlayerState)stateInt;
+
+            // Smooth interpolation
+            float lag = Mathf.Abs((float)(PhotonNetwork.Time - info.SentServerTime));
+            networkPosition += networkVelocity * lag;
+        }
     }
 
     [PunRPC]
@@ -505,17 +557,17 @@ public class PlayerController : MonoBehaviourPunCallbacks
     }
 
     private void OnGUI()
-{
-    if (playerBeingRevived != null)
     {
-        float progress = reviveProgress / reviveTime;
-        GUI.Box(new Rect(Screen.width / 2 - 100, Screen.height - 100, 200, 30), "");
-        GUI.Box(new Rect(Screen.width / 2 - 100, Screen.height - 100, 200 * progress, 30), $"Reviving... {progress * 100:F0}%");
+        if (playerBeingRevived != null)
+        {
+            float progress = reviveProgress / reviveTime;
+            GUI.Box(new Rect(Screen.width / 2 - 100, Screen.height - 100, 200, 30), "");
+            GUI.Box(new Rect(Screen.width / 2 - 100, Screen.height - 100, 200 * progress, 30), $"Reviving... {progress * 100:F0}%");
+        }
+
+        if (isBeingRevived)
+        {
+            GUI.Label(new Rect(Screen.width / 2 - 100, Screen.height / 2, 200, 30), "Being revived...");
+        }
     }
-    
-    if (isBeingRevived)
-    {
-        GUI.Label(new Rect(Screen.width / 2 - 100, Screen.height / 2, 200, 30), "Being revived...");
-    }
-}
 }

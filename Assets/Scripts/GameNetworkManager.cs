@@ -14,6 +14,7 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
     [Header("Auto-Find Spawn Points")]
     [SerializeField] private bool autoFindSpawnPoints = true;
     [SerializeField] private string spawnPointTag = "SpawnPoint"; // Tag for spawn point GameObjects
+    [SerializeField] Vector3 spawnPosition;
 
     private GameObject localPlayerInstance;
 
@@ -27,13 +28,16 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
             {
                 spawnPoints[i] = spawnPointObjects[i].transform;
             }
-            
+
             if (spawnPoints.Length > 0)
             {
                 Debug.Log($"Auto-found {spawnPoints.Length} spawn points.");
             }
         }
-
+        if (PhotonNetwork.IsMasterClient)
+        {
+            PhotonNetwork.InstantiateRoomObject("EnemyPrefabName", spawnPosition, Quaternion.identity);
+        }
         // Spawn player immediately if connected
         if (PhotonNetwork.IsConnectedAndReady && localPlayerInstance == null)
         {
@@ -44,9 +48,9 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
     public override void OnJoinedRoom()
     {
         base.OnJoinedRoom();
-        
+
         Debug.Log($"Joined room: {PhotonNetwork.CurrentRoom.Name}. Players in room: {PhotonNetwork.CurrentRoom.PlayerCount}");
-        
+
         // Spawn player when entering the game scene
         if (localPlayerInstance == null)
         {
@@ -66,10 +70,10 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
         Quaternion spawnRotation = Quaternion.identity;
 
         Debug.Log($"Spawning player at {spawnPosition}");
-        
+
         localPlayerInstance = PhotonNetwork.Instantiate(
-            playerPrefab.name, 
-            spawnPosition, 
+            playerPrefab.name,
+            spawnPosition,
             spawnRotation
         );
 
@@ -94,7 +98,7 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
     public override void OnLeftRoom()
     {
         base.OnLeftRoom();
-        
+
         if (localPlayerInstance != null)
         {
             Destroy(localPlayerInstance);
