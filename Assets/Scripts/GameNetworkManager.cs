@@ -95,17 +95,33 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
 
     private Vector3 GetSpawnPosition()
     {
+        Vector3 position;
+        
         // If spawn points are defined, use them
         if (spawnPoints != null && spawnPoints.Length > 0)
         {
             // Use player's actor number to determine spawn point (consistent spawning)
             int spawnIndex = (PhotonNetwork.LocalPlayer.ActorNumber - 1) % spawnPoints.Length;
-            return spawnPoints[spawnIndex].position;
+            position = spawnPoints[spawnIndex].position;
         }
-
-        // Fallback: Random spawn in a circle
-        Vector2 randomCircle = Random.insideUnitCircle * spawnRadius;
-        return new Vector3(randomCircle.x, 1f, randomCircle.y);
+        else
+        {
+            // Fallback: Random spawn in a circle
+            Vector2 randomCircle = Random.insideUnitCircle * spawnRadius;
+            position = new Vector3(randomCircle.x, 1f, randomCircle.y);
+        }
+        
+        // Raycast downward to find ground level
+        RaycastHit hit;
+        if (Physics.Raycast(position + Vector3.up * 500f, Vector3.down, out hit, 1000f))
+        {
+            // Spawn slightly above ground
+            return hit.point + Vector3.up * 0.5f;
+        }
+        
+        // If no ground found, clamp to a reasonable height
+        position.y = Mathf.Min(position.y, 2f);
+        return position;
     }
 
     public override void OnLeftRoom()
