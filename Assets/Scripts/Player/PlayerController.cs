@@ -14,7 +14,8 @@ public class PlayerController : MonoBehaviourPunCallbacks
     [Header("Movement Settings")]
     [SerializeField] private float walkSpeed = 5f;
     [SerializeField] private float sprintSpeed = 8f;
-    [SerializeField] private float jumpForce = 4.5f;
+    [SerializeField] private float groundFriction = 15f;
+    [SerializeField] private float jumpForce = 1f;
     [SerializeField] private float gravity = -15f;
     [SerializeField] private float groundCheckDistance = 0.3f;
     [SerializeField] private float airControlPercent = 1f;
@@ -44,7 +45,9 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     private void Start()
     {
-        if (!photonView.IsMine && PhotonNetwork.IsConnected)
+        characterController = GetComponent<CharacterController>();
+        playerMask = GetComponent<PlayerMask>();
+        /*if (!photonView.IsMine && !PhotonNetwork.IsConnected)
         {
             if (playerCamera != null)
                 playerCamera.enabled = false;
@@ -54,7 +57,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
             
             enabled = false;
             return;
-        }
+        }*/
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
@@ -84,7 +87,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     private void Update()
     {
-        if (!photonView.IsMine && PhotonNetwork.IsConnected) return;
+        //if (!photonView.IsMine && PhotonNetwork.IsConnected) return;
         if (inputHandler == null) return;
 
         HandleGroundCheck();
@@ -109,6 +112,12 @@ public class PlayerController : MonoBehaviourPunCallbacks
     {
         Vector2 input = inputHandler.movementInput;
         
+        // Debug - remove later
+        if (input.sqrMagnitude > 0.001f)
+        {
+            Debug.Log($"Input detected: {input} | Magnitude: {input.magnitude} | Grounded: {isGrounded}");
+        }
+        
         Transform camTransform = playerCamera.transform;
         Vector3 forward = camTransform.forward;
         Vector3 right = camTransform.right;
@@ -131,7 +140,28 @@ public class PlayerController : MonoBehaviourPunCallbacks
         
         if (isGrounded)
         {
-            horizontalVelocity = targetVelocity;
+            // Debug - remove later
+            Debug.Log($"Input: {input} | InputMag: {input.sqrMagnitude:F4} | Threshold: {INPUT_THRESHOLD * INPUT_THRESHOLD:F4} | Applying Friction: {input.sqrMagnitude < INPUT_THRESHOLD * INPUT_THRESHOLD}");
+            
+            if (input.sqrMagnitude < INPUT_THRESHOLD * INPUT_THRESHOLD)
+            {
+                // Apply friction by reducing velocity exponentially
+                float frictionFactor = Mathf.Max(0f, 1f - groundFriction * Time.deltaTime);
+                horizontalVelocity *= frictionFactor;
+                
+                Debug.Log($"Friction applied. HVel after: {horizontalVelocity.magnitude:F2}");
+                
+                // Stop completely when very slow
+                if (horizontalVelocity.sqrMagnitude < 0.1f)
+                {
+                    horizontalVelocity = Vector3.zero;
+                }
+            }
+            else
+            {
+                horizontalVelocity = targetVelocity;
+                Debug.Log($"Setting velocity to target: {targetVelocity.magnitude:F2}");
+            }
         }
         else
         {
