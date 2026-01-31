@@ -53,6 +53,10 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
     [Header("Debug")]
     [SerializeField] private bool showDebug = true;
 
+    [Header("Line of Sight")]
+    [SerializeField] private LayerMask obstacleMask = -1; // Layers that block line of sight (walls, buildings, etc.)
+    [SerializeField] private float eyeHeight = 1.7f; // Height from which enemy checks line of sight
+
     private EnemyState state = EnemyState.Teleporting;
     private NavMeshAgent agent;
     private float[] suspicionLevels;
@@ -433,8 +437,29 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         Quaternion targetRotation = Quaternion.LookRotation(dir);
         transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 8f);
 
-        int idx = Players.IndexOf(target);
-        if (idx >= 0)
+        // Check line of sight - only gain suspicion if we can actually see the player
+        bool canSeePlayer = HasLineOfSight(target);
+        
+        if (!canSeePlayer)
+        {
+            // Can't see player through walls - decay suspicion faster
+            int idx = Players.IndexOf(target);
+            if (idx >= 0)
+            {
+                suspicionLevels[idx] = Mathf.Max(0f, suspicionLevels[idx] - decayRate * 2f * Time.deltaTime);
+                
+                if (suspicionLevels[idx] < suspicionToPatrol * 0.3f)
+                {
+                    // Lost sight and suspicion dropped - go back to teleporting
+                    state = EnemyState.Teleporting;
+                    target = null;
+                }
+            }
+            return;
+        }
+
+        int idx2 = Players.IndexOf(target);
+        if (idx2 >= 0)
         {
             // Apply mask effect - mask reduces suspicion gain
             float maskEffect = GetPlayerMask(target);
@@ -447,15 +472,15 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
             float effectiveSuspicionGain = distanceBasedGain * maskEffect * Time.deltaTime;
             
             // Debug log suspicion gain
-            if (Time.frameCount % 60 == 0 && false) // Every second
+            if (Time.frameCount % 60 == 0 && showDebug) // Every second
             {
-                Debug.Log($"<color=yellow>Observing {target.name} (idx {idx}): dist={distance:F1}m, suspicion={suspicionLevels[idx]:F2}, gain={effectiveSuspicionGain:F4}/frame, maskEffect={maskEffect:F2}</color>");
+                Debug.Log($"<color=yellow>Observing {target.name} (idx {idx2}): dist={distance:F1}m, suspicion={suspicionLevels[idx2]:F2}, gain={effectiveSuspicionGain:F4}/frame, maskEffect={maskEffect:F2}, LOS=TRUE</color>");
             }
 
-            suspicionLevels[idx] += effectiveSuspicionGain;
-            suspicionLevels[idx] = Mathf.Clamp01(suspicionLevels[idx]);
+            suspicionLevels[idx2] += effectiveSuspicionGain;
+            suspicionLevels[idx2] = Mathf.Clamp01(suspicionLevels[idx2]);
 
-            if (suspicionLevels[idx] >= suspicionToPatrol)
+            if (suspicionLevels[idx2] >= suspicionToPatrol)
             {
                 state = EnemyState.Patrolling;
                 GeneratePatrol(target.position);
@@ -500,7 +525,7 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
             return;
         }
 
-        // Gain suspicion while patrolling if player is nearby AND ALIVE
+        // Gain suspicion while patrolling if player is nearby AND ALIVE AND visible (line of sight)
         float distToPlayer = Vector3.Distance(transform.position, mostSus.position);
         if (distToPlayer <= patrolSuspicionRange)
         {
@@ -510,16 +535,20 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
                 PlayerController pc = mostSus.GetComponent<PlayerController>();
                 if (pc != null && pc.GetCurrentState() == PlayerState.Alive)
                 {
-                    // Apply mask effect and distance-based gain
-                    float maskEffect = GetPlayerMask(mostSus);
+                    // Only gain suspicion if we can see the player
+                    if (HasLineOfSight(mostSus))
+                    {
+                        // Apply mask effect and distance-based gain
+                        float maskEffect = GetPlayerMask(mostSus);
 
-                    // Distance-based gain during patrol
-                    float distanceRatio = distToPlayer / patrolSuspicionRange;
-                    float distanceBasedGain = Mathf.Lerp(observeGainRateClose, observeGainRateFar, distanceRatio);
-                    float patrolSuspicionGain = distanceBasedGain * 0.5f * maskEffect; // Half rate during patrol
+                        // Distance-based gain during patrol
+                        float distanceRatio = distToPlayer / patrolSuspicionRange;
+                        float distanceBasedGain = Mathf.Lerp(observeGainRateClose, observeGainRateFar, distanceRatio);
+                        float patrolSuspicionGain = distanceBasedGain * 0.5f * maskEffect; // Half rate during patrol
 
-                    suspicionLevels[playerIdx] += patrolSuspicionGain * Time.deltaTime;
-                    suspicionLevels[playerIdx] = Mathf.Clamp01(suspicionLevels[playerIdx]);
+                        suspicionLevels[playerIdx] += patrolSuspicionGain * Time.deltaTime;
+                        suspicionLevels[playerIdx] = Mathf.Clamp01(suspicionLevels[playerIdx]);
+                    }
                 }
             }
         }
@@ -718,6 +747,43 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
     }
 
     // ===== HELPERS =====
+    
+    /// <summary>
+    /// Checks if the enemy has a clear line of sight to the target (no walls/obstacles)
+    /// </summary>
+    bool HasLineOfSight(Transform target)
+    {
+        if (target == null) return false;
+
+        Vector3 eyePosition = transform.position + Vector3.up * eyeHeight;
+        Vector3 targetPosition = target.position + Vector3.up * 1.5f; // Aim for player's upper body/head
+        Vector3 direction = targetPosition - eyePosition;
+        float distance = direction.magnitude;
+
+        // Raycast to check for obstacles
+        if (Physics.Raycast(eyePosition, direction.normalized, out RaycastHit hit, distance, obstacleMask))
+        {
+            // Check if we hit the player or an obstacle
+            if (hit.transform == target || hit.transform.IsChildOf(target))
+            {
+                // Hit the player directly - we can see them
+                return true;
+            }
+            else
+            {
+                // Hit an obstacle (wall, building, etc.) - can't see player
+                if (showDebug && Time.frameCount % 60 == 0)
+                {
+                    Debug.Log($"<color=orange>Line of sight blocked by {hit.collider.name} at {hit.point}</color>");
+                }
+                return false;
+            }
+        }
+
+        // Nothing blocking the view
+        return true;
+    }
+    
     void DecaySuspicion()
     {
         // Decay suspicion for dead/downed players OR players out of range
@@ -764,7 +830,7 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         Transform nearest = null;
         float minDist = range;
         
-        if (Time.frameCount % 120 == 0 && false) // Every 2 seconds
+        if (Time.frameCount % 120 == 0 && showDebug) // Every 2 seconds
         {
             Debug.Log($"<color=magenta>GetNearestInRange: Checking {Players.Count} players within {range}m</color>");
         }
@@ -780,21 +846,29 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
 
             float d = Vector3.Distance(transform.position, p.position);
             
-            if (Time.frameCount % 120 == 0 && false)
-            {
-                Debug.Log($"<color=magenta>  Player {p.name}: distance={d:F1}m, alive={pc != null && pc.GetCurrentState() == PlayerState.Alive}</color>");
-            }
-            
+            // Check if within range AND has line of sight
             if (d < minDist)
             {
-                minDist = d;
-                nearest = p;
+                // Only detect if we can see the player (no walls blocking)
+                if (HasLineOfSight(p))
+                {
+                    if (Time.frameCount % 120 == 0 && showDebug)
+                    {
+                        Debug.Log($"<color=magenta>  Player {p.name}: distance={d:F1}m, alive=true, LOS=TRUE</color>");
+                    }
+                    minDist = d;
+                    nearest = p;
+                }
+                else if (Time.frameCount % 120 == 0 && showDebug)
+                {
+                    Debug.Log($"<color=magenta>  Player {p.name}: distance={d:F1}m, alive=true, LOS=FALSE (blocked by obstacle)</color>");
+                }
             }
         }
         
-        if (Time.frameCount % 120 == 0 && nearest != null && false)
+        if (Time.frameCount % 120 == 0 && nearest != null && showDebug)
         {
-            Debug.Log($"<color=magenta>Nearest player: {nearest.name} at {minDist:F1}m</color>");
+            Debug.Log($"<color=magenta>Nearest VISIBLE player: {nearest.name} at {minDist:F1}m</color>");
         }
         
         return nearest;
@@ -898,9 +972,24 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, observeRange);
 
+        // Draw line of sight rays to all players
+        Vector3 eyePos = transform.position + Vector3.up * eyeHeight;
+        foreach (Transform player in Players)
+        {
+            if (player == null) continue;
+            
+            Vector3 targetPos = player.position + Vector3.up * 1.5f;
+            bool hasLOS = HasLineOfSight(player);
+            
+            // Green line if can see, red if blocked
+            Gizmos.color = hasLOS ? Color.green : Color.red;
+            Gizmos.DrawLine(eyePos, targetPos);
+        }
+
         if (target != null)
         {
-            Gizmos.color = Color.red;
+            bool hasLOS = HasLineOfSight(target);
+            Gizmos.color = hasLOS ? Color.cyan : Color.magenta;
             Gizmos.DrawLine(transform.position, target.position);
         }
 
