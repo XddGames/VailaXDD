@@ -12,6 +12,7 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
     [SerializeField] private float attackRange = 2.5f;
 
     [Header("Players")]
+    private const int maxPlayers = 2; // Maximum expected players
     private List<Transform> Players = new List<Transform>();
     private List<PlayerController> playerControllers = new List<PlayerController>();
 
@@ -102,10 +103,16 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         stream.SendNext(transform.rotation);
         stream.SendNext((int)state);
         
-        // Send suspicion levels
-        for (int i = 0; i < suspicionLevels.Length; i++)
+        // Send suspicion levels count first, then the values
+        int count = (suspicionLevels != null) ? suspicionLevels.Length : 0;
+        stream.SendNext(count);
+        
+        if (suspicionLevels != null)
         {
-            stream.SendNext(suspicionLevels[i]);
+            for (int i = 0; i < suspicionLevels.Length; i++)
+            {
+                stream.SendNext(suspicionLevels[i]);
+            }
         }
     }
     else
@@ -129,8 +136,17 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         
         state = (EnemyState)stateInt;
         
-        // Receive suspicion levels
-        for (int i = 0; i < suspicionLevels.Length && i < Players.Count; i++)
+        // Receive suspicion levels - first get the count
+        int count = (int)stream.ReceiveNext();
+        
+        // Ensure array is initialized to the correct size
+        if (suspicionLevels == null || suspicionLevels.Length != count)
+        {
+            suspicionLevels = new float[count];
+        }
+        
+        // Read exactly the number of values that were sent
+        for (int i = 0; i < count; i++)
         {
             suspicionLevels[i] = (float)stream.ReceiveNext();
         }

@@ -20,10 +20,15 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     [Header("Revive Settings")]
     [SerializeField] private float reviveRange = 3f;
     [SerializeField] private float reviveTime = 5f; // Time to revive in seconds
+    [SerializeField] private float reviveTimeLimit = 30f; // Time before permanent death
     [SerializeField] private LayerMask playerLayerMask; // Set to Player layer
     private float reviveProgress = 0f;
+    private float reviveTimer = 0f; // Countdown timer
     private PlayerController playerBeingRevived = null;
     private bool isBeingRevived = false;
+    
+    [Header("Spectator")]
+    private SpectatorCamera spectatorCamera;
 
     [Header("Movement Settings")]
     [SerializeField] private float walkSpeed = 5f;
@@ -79,6 +84,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         characterController = GetComponent<CharacterController>();
         playerMask = GetComponent<PlayerMask>();
         currentStamina = maxStamina;
+        spectatorCamera = GetComponent<SpectatorCamera>();
     }
 
     private void Start()
@@ -203,8 +209,10 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 break;
             case PlayerState.WaitingRevive:
                 HandleCameraRotation();
+                HandleWaitingRevive();
                 break;
             case PlayerState.Spectating:
+                // Spectator mode - camera is handled by SpectatorCamera component
                 break;
             case PlayerState.SinglePlayerDead:
                 break;
@@ -268,6 +276,27 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             photonView.RPC(nameof(RPC_CompleteRevive), RpcTarget.All, playerBeingRevived.photonView.ViewID);
             playerBeingRevived = null;
             reviveProgress = 0f;
+        }
+    }
+
+    private void HandleWaitingRevive()
+    {
+        // Countdown timer
+        reviveTimer += Time.deltaTime;
+        
+        // Display timer to player
+        if (Time.frameCount % 30 == 0) // Every half second
+        {
+            float timeRemaining = reviveTimeLimit - reviveTimer;
+            Debug.Log($"<color=orange>Waiting for revive... {timeRemaining:F0}s remaining</color>");
+        }
+        
+        // Check if time ran out
+        if (reviveTimer >= reviveTimeLimit)
+        {
+            // Permanent death - go to spectator
+            Debug.Log("<color=red>Revive timer expired! Entering spectator mode...</color>");
+            photonView.RPC(nameof(RPC_EnterSpectator), RpcTarget.All);
         }
     }
 
@@ -405,6 +434,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     {
         PlayerState oldState = currentState;
         currentState = PlayerState.WaitingRevive;
+        reviveTimer = 0f; // Reset the death timer
         Debug.Log($"<color=red>Player {gameObject.name} STATE CHANGED: {oldState} -> {currentState} (RPC received on {(photonView.IsMine ? "LOCAL" : "REMOTE")} client)</color>");
         
         // Log what should happen next
@@ -452,9 +482,50 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             {
                 target.ChangeState(PlayerState.Alive);
                 target.isBeingRevived = false;
+                target.reviveTimer = 0f; // Reset death timer
                 Debug.Log($"Revived {target.name}!");
             }
         }
+    }
+    
+    [PunRPC]
+    private void RPC_EnterSpectator()
+    {
+        currentState = PlayerState.Spectating;
+        
+        // Disable player controls
+        if (characterController != null)
+        {
+            characterController.enabled = false;
+        }
+        
+        // Hide the player body and disable colliders so enemy can't target it
+        Renderer[] renderers = GetComponentsInChildren<Renderer>();
+        foreach (Renderer renderer in renderers)
+        {
+            renderer.enabled = false;
+        }
+        
+        Collider[] colliders = GetComponentsInChildren<Collider>();
+        foreach (Collider collider in colliders)
+        {
+            collider.enabled = false;
+        }
+        
+        // Only enable spectator camera for the LOCAL player who died
+        if (photonView.IsMine)
+        {
+            if (spectatorCamera != null)
+            {
+                spectatorCamera.StartSpectating();
+            }
+            else
+            {
+                Debug.LogWarning("No SpectatorCamera component found! Add SpectatorCamera to player prefab.");
+            }
+        }
+        
+        Debug.Log($"<color=blue>Player {gameObject.name} entered spectator mode - body hidden and colliders disabled (IsMine: {photonView.IsMine})</color>");
     }
 
     public float GetReviveProgress()
