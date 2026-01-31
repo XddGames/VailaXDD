@@ -9,16 +9,14 @@ public enum PlayerState
     SinglePlayerDead
 }
 [RequireComponent(typeof(CharacterController))]
-[RequireComponent(typeof(PlayerMask))]
-
 public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 {
     [Header("References")]
     [SerializeField] private InputHandler inputHandler;
     [SerializeField] private Camera playerCamera;
+    [SerializeField] public PlayerMask playerMask;
     [SerializeField] private GameObject playerUI; // Drag your player UI Canvas here
     private CharacterController characterController;
-    private PlayerMask playerMask;
     [Header("Revive Settings")]
     [SerializeField] private float reviveRange = 3f;
     [SerializeField] private float reviveTime = 5f; // Time to revive in seconds
@@ -97,7 +95,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     {
         currentState = PlayerState.Alive;
         characterController = GetComponent<CharacterController>();
-        playerMask = GetComponent<PlayerMask>();
         currentStamina = maxStamina;
         spectatorCamera = GetComponent<SpectatorCamera>();
     }
@@ -206,6 +203,11 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         if (Input.GetKeyDown(KeyCode.C))
         {
             ToggleSpeed();
+        }
+        
+        if (Input.GetKeyDown(KeyCode.G)) // mask
+        {
+            playerMask.SetMaskState(!playerMask.HasMaskOn);
         }
 
         switch (currentState)
@@ -378,7 +380,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         if (!pressEdge)
             return;
 
-
         if (currentGraveyardMinigame == null)
         {
             currentGraveyardMinigame = FindAnyObjectByType<GraveyardMinigame>();
@@ -387,7 +388,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         if (currentGraveyardMinigame != null && currentGraveyardMinigame.IsMinigameActive())
         {
             Gravestone nearbyGravestone = currentGraveyardMinigame.FindGravestoneInRange(transform.position);
-                        
+            
             if (nearbyGravestone != null)
             {
                 nearbyGravestone.OnClicked(this);

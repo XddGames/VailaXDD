@@ -976,10 +976,12 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
             PlayerController pc = playerControllers[idx];
             if (pc != null)
             {
-                PlayerMask maskComponent = pc.GetComponent<PlayerMask>();
+                PlayerMask maskComponent = pc.playerMask;
                 if (maskComponent != null)
                 {
                     return maskComponent.GetMaskEffect();
+                } else {
+                    Debug.LogError("Could not find PlayerMask in PlayerController");
                 }
             }
         }
