@@ -96,7 +96,10 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         stream.SendNext(transform.rotation);
         stream.SendNext((int)state);
         
-        // Send suspicion levels
+        // Send suspicion levels count first, then the values
+        int count = (suspicionLevels != null) ? suspicionLevels.Length : 0;
+        stream.SendNext(count);
+        
         if (suspicionLevels != null)
         {
             for (int i = 0; i < suspicionLevels.Length; i++)
@@ -126,13 +129,17 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         
         state = (EnemyState)stateInt;
         
-        // Receive suspicion levels - ensure array is initialized
-        if (suspicionLevels == null)
+        // Receive suspicion levels - first get the count
+        int count = (int)stream.ReceiveNext();
+        
+        // Ensure array is initialized to the correct size
+        if (suspicionLevels == null || suspicionLevels.Length != count)
         {
-            suspicionLevels = new float[maxPlayers];
+            suspicionLevels = new float[count];
         }
         
-        for (int i = 0; i < suspicionLevels.Length && i < maxPlayers; i++)
+        // Read exactly the number of values that were sent
+        for (int i = 0; i < count; i++)
         {
             suspicionLevels[i] = (float)stream.ReceiveNext();
         }
