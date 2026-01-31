@@ -51,6 +51,12 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     [SerializeField] private float mouseSensitivity = 0.2f;
     [SerializeField] private float maxLookAngle = 80f;
 
+    [Header("Generator Settings")]
+    [SerializeField] private float interactRange = 3f;
+    [SerializeField] private LayerMask generatorLayerMask;
+    private PowerGenerator currentGenerator = null;
+    private float generatorProgress = 0f;
+
     private const float GROUND_STICK_FORCE = -2f;
     private const float INPUT_THRESHOLD = 0.1f;
     private const float JUMP_GRAVITY_MULTIPLIER = 1.5f;
@@ -200,6 +206,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 HandleCameraRotation();
                 HandleStamina();
                 HandleRevive();
+                HandleGenerator();
                 break;
             case PlayerState.WaitingRevive:
                 HandleCameraRotation();
@@ -272,7 +279,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             reviveProgress = 0f;
         }
     }
-    
+
     private void HandleWaitingRevive()
     {
         // Countdown timer
@@ -292,6 +299,65 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             Debug.Log("<color=red>Revive timer expired! Entering spectator mode...</color>");
             photonView.RPC(nameof(RPC_EnterSpectator), RpcTarget.All);
         }
+    }
+
+    private void HandleGenerator()
+    {
+        if (playerBeingRevived != null) return;
+
+        if (!inputHandler.interactInput)
+        {
+            if (currentGenerator != null)
+            {
+                Debug.Log("Stopped fixing generator - key released");
+                currentGenerator = null;
+                generatorProgress = 0f;
+            }
+            return;
+        }
+
+        if (currentGenerator == null)
+        {
+            PowerGenerator foundGen = FindGeneratorInRange();
+            
+            if (foundGen != null && !foundGen.IsOn)
+            {
+                currentGenerator = foundGen;
+                generatorProgress = 0f;
+                Debug.Log("Started fixing generator...");
+            }
+            return;
+        }
+
+        float distance = Vector3.Distance(transform.position, currentGenerator.transform.position);
+        if (distance > interactRange)
+        {
+            currentGenerator = null;
+            generatorProgress = 0f;
+            return;
+        }
+
+        generatorProgress += Time.deltaTime;
+        if (generatorProgress >= currentGenerator.timeToTurnOn)
+        {
+            currentGenerator.photonView.RPC(nameof(PowerGenerator.RPC_SetState), RpcTarget.AllBuffered, true);
+            
+            currentGenerator = null;
+            generatorProgress = 0f;
+        }
+    }
+
+    private PowerGenerator FindGeneratorInRange()
+    {
+        Collider[] colliders = Physics.OverlapSphere(transform.position, interactRange, generatorLayerMask);
+        
+        foreach (Collider col in colliders)
+        {
+            PowerGenerator gen = col.GetComponent<PowerGenerator>();
+            if (gen != null && !gen.IsOn)
+                return gen;
+        }
+        return null;
     }
 
     private PlayerController FindDownedPlayerInRange()
@@ -702,6 +768,14 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         if (isBeingRevived)
         {
             GUI.Label(new Rect(Screen.width / 2 - 100, Screen.height / 2, 200, 30), "Being revived...");
+        }
+
+        if (currentGenerator != null)
+        {
+            float progress = generatorProgress / currentGenerator.timeToTurnOn;
+            
+            GUI.Box(new Rect(Screen.width / 2 - 100, Screen.height - 150, 200, 30), "");
+            GUI.Box(new Rect(Screen.width / 2 - 100, Screen.height - 150, 200 * progress, 30), $"Powering Up... {progress * 100:F0}%");
         }
     }
 }
