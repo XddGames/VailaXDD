@@ -58,6 +58,8 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
 
         // Find all PlayerController components in the scene
         PlayerController[] allPlayers = FindObjectsOfType<PlayerController>();
+        
+        Debug.Log($"<color=cyan>FindAllPlayers: Found {allPlayers.Length} PlayerController components in scene</color>");
 
         foreach (PlayerController pc in allPlayers)
         {
@@ -67,7 +69,11 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
             {
                 Players.Add(pc.transform);
                 playerControllers.Add(pc);
-                Debug.Log($"Enemy found player: {pc.name} (ViewID: {pv.ViewID})");
+                Debug.Log($"<color=cyan>Enemy found player: {pc.name} (ViewID: {pv.ViewID}, IsMine: {pv.IsMine}, Owner: {pv.Owner?.NickName})</color>");
+            }
+            else
+            {
+                Debug.LogWarning($"Player {pc.name} has no PhotonView!");
             }
         }
 
@@ -77,7 +83,7 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
             suspicionLevels = new float[Players.Count];
         }
 
-        Debug.Log($"Enemy tracking {Players.Count} players");
+        Debug.Log($"<color=cyan>Enemy tracking {Players.Count} players</color>");
     }
 
     public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
@@ -429,6 +435,12 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
             float distanceBasedGain = Mathf.Lerp(observeGainRateClose, observeGainRateFar, distanceRatio);
 
             float effectiveSuspicionGain = distanceBasedGain * maskEffect * Time.deltaTime;
+            
+            // Debug log suspicion gain
+            if (Time.frameCount % 60 == 0) // Every second
+            {
+                Debug.Log($"<color=yellow>Observing {target.name} (idx {idx}): dist={distance:F1}m, suspicion={suspicionLevels[idx]:F2}, gain={effectiveSuspicionGain:F4}/frame, maskEffect={maskEffect:F2}</color>");
+            }
 
             suspicionLevels[idx] += effectiveSuspicionGain;
             suspicionLevels[idx] = Mathf.Clamp01(suspicionLevels[idx]);
@@ -534,7 +546,6 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
     void GeneratePatrol(Vector3 center)
     {
         patrolPoints.Clear();
-        Debug.Log($"Generating patrol points around {center}");
 
         int navMaskAll = -1;
 
@@ -548,16 +559,10 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
             if (NavMesh.SamplePosition(pos, out NavMeshHit hit, 50f, navMaskAll))
             {
                 patrolPoints.Add(hit.position);
-                Debug.Log($"Patrol point {i} added at {hit.position}");
-            }
-            else
-            {
-                Debug.LogWarning($"Failed to find NavMesh for patrol point {i} near {pos}");
             }
         }
 
         patrolIndex = 0;
-        Debug.Log($"Generated {patrolPoints.Count} patrol points");
     }
 
     // ===== CHASING =====
@@ -670,6 +675,12 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
     {
         Transform nearest = null;
         float minDist = range;
+        
+        if (Time.frameCount % 120 == 0) // Every 2 seconds
+        {
+            Debug.Log($"<color=magenta>GetNearestInRange: Checking {Players.Count} players within {range}m</color>");
+        }
+        
         foreach (Transform p in Players)
         {
             if (p == null) continue;
@@ -680,12 +691,24 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
                 continue;
 
             float d = Vector3.Distance(transform.position, p.position);
+            
+            if (Time.frameCount % 120 == 0)
+            {
+                Debug.Log($"<color=magenta>  Player {p.name}: distance={d:F1}m, alive={pc != null && pc.GetCurrentState() == PlayerState.Alive}</color>");
+            }
+            
             if (d < minDist)
             {
                 minDist = d;
                 nearest = p;
             }
         }
+        
+        if (Time.frameCount % 120 == 0 && nearest != null)
+        {
+            Debug.Log($"<color=magenta>Nearest player: {nearest.name} at {minDist:F1}m</color>");
+        }
+        
         return nearest;
     }
     private void ChangeState(EnemyState newState)

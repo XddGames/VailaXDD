@@ -176,6 +176,12 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         }
 
         if (inputHandler == null) return;
+        
+        // Debug: Log state occasionally
+        if (Time.frameCount % 120 == 0) // Every 2 seconds
+        {
+            Debug.Log($"Player {gameObject.name} current state: {currentState}");
+        }
 
         switch (currentState)
         {
@@ -312,7 +318,16 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             networkVelocity = (Vector3)stream.ReceiveNext();
 
             int stateInt = (int)stream.ReceiveNext();
-            currentState = (PlayerState)stateInt;
+            // Don't overwrite state here - RPCs handle state changes
+            // Only sync state if it's significantly different (for initial sync)
+            PlayerState networkState = (PlayerState)stateInt;
+            if (currentState == PlayerState.Alive && networkState != PlayerState.Alive)
+            {
+                // Only update to non-Alive states if we're currently Alive
+                // This prevents network lag from overwriting RPC state changes
+                currentState = networkState;
+                Debug.Log($"State synced from network: {currentState}");
+            }
 
             // Smooth interpolation
             float lag = Mathf.Abs((float)(PhotonNetwork.Time - info.SentServerTime));
@@ -323,8 +338,12 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     [PunRPC]
     public void RPC_KillPlayer()
     {
+        PlayerState oldState = currentState;
         currentState = PlayerState.WaitingRevive;
-        Debug.Log($"<color=red>Player {gameObject.name} was killed by enemy (RPC received on {(photonView.IsMine ? "LOCAL" : "REMOTE")} client)</color>");
+        Debug.Log($"<color=red>Player {gameObject.name} STATE CHANGED: {oldState} -> {currentState} (RPC received on {(photonView.IsMine ? "LOCAL" : "REMOTE")} client)</color>");
+        
+        // Log what should happen next
+        Debug.Log($"Player should now be in WaitingRevive state. IsMine: {photonView.IsMine}");
     }
 
     [PunRPC]
