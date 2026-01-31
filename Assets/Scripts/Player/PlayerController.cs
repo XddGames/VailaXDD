@@ -9,16 +9,14 @@ public enum PlayerState
     SinglePlayerDead
 }
 [RequireComponent(typeof(CharacterController))]
-[RequireComponent(typeof(PlayerMask))]
-
 public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 {
     [Header("References")]
     [SerializeField] private InputHandler inputHandler;
     [SerializeField] private Camera playerCamera;
+    [SerializeField] public PlayerMask playerMask;
     [SerializeField] private GameObject playerUI; // Drag your player UI Canvas here
     private CharacterController characterController;
-    private PlayerMask playerMask;
     [Header("Revive Settings")]
     [SerializeField] private float reviveRange = 3f;
     [SerializeField] private float reviveTime = 5f; // Time to revive in seconds
@@ -92,7 +90,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     {
         currentState = PlayerState.Alive;
         characterController = GetComponent<CharacterController>();
-        playerMask = GetComponent<PlayerMask>();
         currentStamina = maxStamina;
         spectatorCamera = GetComponent<SpectatorCamera>();
     }
@@ -196,6 +193,11 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             {
                 currentStamina = maxStamina;
             }
+        }
+
+        if (Input.GetKeyDown(KeyCode.G)) // mask
+        {
+            playerMask.SetMaskState(!playerMask.HasMaskOn);
         }
 
         switch (currentState)
@@ -362,32 +364,23 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     private void HandleGraveyardInteraction()
     {
-        UnityEngine.Debug.Log($"[GRAVE] HandleGraveyardInteraction chamado - interactInput: {inputHandler.interactInput}");
-
         bool pressEdge = inputHandler.interactInput && !lastInteractStateForGrave;
         lastInteractStateForGrave = inputHandler.interactInput;
 
         if (!pressEdge)
             return;
 
-        UnityEngine.Debug.Log("[GRAVE] E PRESSIONADO (rising edge)!");
-
         if (currentGraveyardMinigame == null)
         {
             currentGraveyardMinigame = FindAnyObjectByType<GraveyardMinigame>();
-            UnityEngine.Debug.Log($"[GRAVE] Minigame encontrado: {currentGraveyardMinigame != null}");
         }
 
         if (currentGraveyardMinigame != null && currentGraveyardMinigame.IsMinigameActive())
         {
-            UnityEngine.Debug.Log($"[GRAVE] Procurando gravestone na posição: {transform.position}");
             Gravestone nearbyGravestone = currentGraveyardMinigame.FindGravestoneInRange(transform.position);
-            
-            UnityEngine.Debug.Log($"[GRAVE] Gravestone encontrada: {nearbyGravestone != null}");
             
             if (nearbyGravestone != null)
             {
-                UnityEngine.Debug.Log($"[GRAVE] CLICANDO NA GRAVESTONE: {nearbyGravestone.DeceasedName}");
                 nearbyGravestone.OnClicked(this);
             }
         }
