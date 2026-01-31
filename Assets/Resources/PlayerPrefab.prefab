@@ -17,6 +17,7 @@ GameObject:
   - component: {fileID: 8440374821185488664}
   - component: {fileID: 6725692040602590194}
   - component: {fileID: -2400955046980152237}
+  - component: {fileID: 3230311223489403744}
   m_Layer: 6
   m_Name: PlayerPrefab
   m_TagString: Player
@@ -171,6 +172,7 @@ MonoBehaviour:
   playerCamera: {fileID: 7899688849107824191}
   reviveRange: 3
   reviveTime: 5
+  reviveTimeLimit: 30
   playerLayerMask:
     serializedVersion: 2
     m_Bits: 64
@@ -247,6 +249,22 @@ MonoBehaviour:
     InterpolateOption: 0
     InterpolateMoveTowardsSpeed: 1
     InterpolateLerpSpeed: 0
+--- !u!114 &3230311223489403744
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971421174549903251}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 275c405f7893e034d907eca6a597dae3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  followSpeed: 5
+  offset: {x: 0, y: 2, z: -5}
+  rotationSpeed: 100
+  allowRotation: 1
 --- !u!1 &4125300803069448782
 GameObject:
   m_ObjectHideFlags: 0
