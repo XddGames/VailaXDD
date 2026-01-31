@@ -21,6 +21,12 @@ public class PlayerController : MonoBehaviourPunCallbacks
     [SerializeField] private float airControlPercent = 1f;
     [SerializeField] private LayerMask groundMask;
 
+    [Header("Stamina Settings")]
+    [SerializeField] private float maxStamina = 100f;
+    [SerializeField] private float staminaDrainRate = 20f;
+    [SerializeField] private float staminaRegenRate = 15f;
+    [SerializeField] private float staminaRegenDelay = 1f;
+
     [Header("Camera Settings")]
     [SerializeField] private float mouseSensitivity = 0.2f;
     [SerializeField] private float maxLookAngle = 80f;
@@ -36,11 +42,15 @@ public class PlayerController : MonoBehaviourPunCallbacks
     private bool isGrounded;
     private bool lastInteractState;
     private float lastInteractionTime;
+    
+    private float currentStamina;
+    private float lastSprintTime;
 
     private void Awake()
     {
         characterController = GetComponent<CharacterController>();
         playerMask = GetComponent<PlayerMask>();
+        currentStamina = maxStamina;
     }
 
     private void Start()
@@ -95,6 +105,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
         HandleJump();
         HandleInteraction();
         HandleCameraRotation();
+        HandleStamina();
     }
 
     private void HandleGroundCheck()
@@ -174,11 +185,43 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     private float CalculateSpeed()
     {
-        if (inputHandler.sprintInput && inputHandler.movementInput.sqrMagnitude > INPUT_THRESHOLD * INPUT_THRESHOLD)
+        if (inputHandler.sprintInput && inputHandler.movementInput.sqrMagnitude > INPUT_THRESHOLD * INPUT_THRESHOLD && currentStamina > 0f)
         {
             return sprintSpeed;
         }
         return walkSpeed;
+    }
+
+    private void HandleStamina()
+    {
+        bool isSprinting = inputHandler.sprintInput && inputHandler.movementInput.sqrMagnitude > INPUT_THRESHOLD * INPUT_THRESHOLD && currentStamina > 0f;
+
+        if (isSprinting && isGrounded)
+        {
+            currentStamina -= staminaDrainRate * Time.deltaTime;
+            currentStamina = Mathf.Max(0f, currentStamina);
+            lastSprintTime = Time.time;
+        }
+        else if (Time.time >= lastSprintTime + staminaRegenDelay)
+        {
+            currentStamina += staminaRegenRate * Time.deltaTime;
+            currentStamina = Mathf.Min(maxStamina, currentStamina);
+        }
+    }
+
+    public float GetCurrentStamina()
+    {
+        return currentStamina;
+    }
+
+    public float GetMaxStamina()
+    {
+        return maxStamina;
+    }
+
+    public float GetStaminaPercentage()
+    {
+        return currentStamina / maxStamina;
     }
 
     private void HandleJump()
