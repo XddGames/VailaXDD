@@ -1,0 +1,2 @@
+*.bin filter=lfs diff=lfs merge=lfs -text
+Assets/StreamingAssets/ggml-small-q5_1.bin filter=lfs diff=lfs merge=lfs -text
