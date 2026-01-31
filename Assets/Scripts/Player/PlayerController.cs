@@ -207,6 +207,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 photonView.RPC(nameof(RPC_CancelRevive), RpcTarget.All, playerBeingRevived.photonView.ViewID);
                 playerBeingRevived = null;
                 reviveProgress = 0f;
+                Debug.Log("Stopped reviving - interact key released");
             }
             return;
         }
@@ -219,8 +220,17 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 playerBeingRevived = downedPlayer;
                 reviveProgress = 0f;
 
+                Debug.Log($"Started reviving {downedPlayer.name}");
                 // Tell everyone we're starting to revive this player
                 photonView.RPC(nameof(RPC_StartRevive), RpcTarget.All, downedPlayer.photonView.ViewID);
+            }
+            else
+            {
+                // Debug: No downed player found
+                if (Time.frameCount % 60 == 0) // Log every second
+                {
+                    Debug.Log($"Looking for downed players in range {reviveRange}m...");
+                }
             }
             return;
         }
@@ -252,15 +262,32 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     private PlayerController FindDownedPlayerInRange()
     {
         Collider[] colliders = Physics.OverlapSphere(transform.position, reviveRange, playerLayerMask);
+        
+        if (Time.frameCount % 60 == 0 && colliders.Length > 0) // Debug every second
+        {
+            Debug.Log($"Found {colliders.Length} colliders in revive range");
+        }
 
         foreach (Collider col in colliders)
         {
             if (col.transform == transform) continue; // Skip self
 
             PlayerController pc = col.GetComponent<PlayerController>();
-            if (pc != null && pc.GetCurrentState() == PlayerState.WaitingRevive && !pc.isBeingRevived)
+            if (pc != null)
             {
-                return pc;
+                PlayerState pcState = pc.GetCurrentState();
+                bool beingRevived = pc.isBeingRevived;
+                
+                if (Time.frameCount % 60 == 0) // Debug
+                {
+                    Debug.Log($"Found player {pc.name}: State={pcState}, BeingRevived={beingRevived}");
+                }
+                
+                if (pcState == PlayerState.WaitingRevive && !beingRevived)
+                {
+                    Debug.Log($"Found downed player to revive: {pc.name}");
+                    return pc;
+                }
             }
         }
 
@@ -291,6 +318,13 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             float lag = Mathf.Abs((float)(PhotonNetwork.Time - info.SentServerTime));
             networkPosition += networkVelocity * lag;
         }
+    }
+
+    [PunRPC]
+    public void RPC_KillPlayer()
+    {
+        currentState = PlayerState.WaitingRevive;
+        Debug.Log($"<color=red>Player {gameObject.name} was killed by enemy (RPC received on {(photonView.IsMine ? "LOCAL" : "REMOTE")} client)</color>");
     }
 
     [PunRPC]

@@ -569,8 +569,14 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         Transform mostSus = GetMostSuspicious();
         if (mostSus == null)
         {
+            Debug.Log("UpdateChasing: No suspicious player found");
             state = EnemyState.Teleporting;
             return;
+        }
+
+        if (Time.frameCount % 60 == 0) // Log every second
+        {
+            Debug.Log($"Chasing {mostSus.name} at distance {Vector3.Distance(transform.position, mostSus.position):F1}m");
         }
 
         agent.SetDestination(mostSus.position);
@@ -580,9 +586,33 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         {
             if (mostSus == null) return;
             PlayerController playerController = mostSus.GetComponent<PlayerController>();
-            if (playerController != null && playerController.GetCurrentState() == PlayerState.Alive)
+            
+            Debug.Log($"Enemy in attack range ({distToPlayer:F1}m <= {attackRange}m) of {mostSus.name}");
+            
+            if (playerController != null)
             {
-                playerController.ChangeState(PlayerState.WaitingRevive);
+                PlayerState pState = playerController.GetCurrentState();
+                Debug.Log($"Player {mostSus.name} state: {pState}");
+                
+                if (pState == PlayerState.Alive)
+                {
+                    // Use RPC to kill player across network
+                    PhotonView targetPhotonView = playerController.GetComponent<PhotonView>();
+                    if (targetPhotonView != null)
+                    {
+                        Debug.Log($"Calling RPC_KillPlayer on {mostSus.name} (ViewID: {targetPhotonView.ViewID})");
+                        targetPhotonView.RPC(nameof(PlayerController.RPC_KillPlayer), RpcTarget.All);
+                        Debug.Log($"Enemy killed player {playerController.name}");
+                    }
+                    else
+                    {
+                        Debug.LogError($"Player {mostSus.name} has no PhotonView!");
+                    }
+                }
+            }
+            else
+            {
+                Debug.LogError($"Player {mostSus.name} has no PlayerController!");
             }
         }
 
