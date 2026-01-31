@@ -50,12 +50,9 @@ public class Gravestone : MonoBehaviourPunCallbacks
 
     public void OnClicked(PlayerController player)
     {
-        Debug.Log($"[GRAVE] OnClicked chamado para {deceasedName}");
-        Debug.Log($"[GRAVE] isClickable: {isClickable}, minigameManager: {minigameManager != null}");
         
         if (!isClickable || minigameManager == null)
         {
-            Debug.Log($"[GRAVE] Clique ignorado! isClickable={isClickable}, manager={minigameManager != null}");
             return;
         }
 
@@ -69,26 +66,22 @@ public class Gravestone : MonoBehaviourPunCallbacks
 
             if (photonView != null)
             {
-                Debug.Log($"[GRAVE] Photon conectado, enviando RPC para {deceasedName} (playerViewID={playerViewID})");
                 try
                 {
                     photonView.RPC(nameof(RPC_ProcessClick), RpcTarget.AllBuffered, playerViewID);
                 }
                 catch (System.Exception ex)
                 {
-                    Debug.LogWarning($"[GRAVE] RPC falhou, a processar localmente: {ex.Message}");
                     ProcessClick();
                 }
             }
             else
             {
-                Debug.LogWarning("[GRAVE] Gravestone sem PhotonView, processando clique localmente");
                 ProcessClick();
             }
         }
         else
         {
-            Debug.Log($"[GRAVE] Modo offline, processando clique diretamente para {deceasedName}");
             ProcessClick();
         }
     }
@@ -101,11 +94,8 @@ public class Gravestone : MonoBehaviourPunCallbacks
 
     private void ProcessClick()
     {
-        Debug.Log($"[GRAVE] ProcessClick chamado para {deceasedName}");
-        Debug.Log($"[GRAVE] Manager é null? {minigameManager == null}");
         if (minigameManager != null)
         {
-            Debug.Log($"[GRAVE] Chamando OnGravestoneClicked no manager");
             minigameManager.OnGravestoneClicked(this);
         }
     }
@@ -122,13 +112,11 @@ public class Gravestone : MonoBehaviourPunCallbacks
                 }
                 catch (System.Exception ex)
                 {
-                    Debug.LogWarning($"[GRAVE] SetGlowState RPC falhou: {ex.Message}. Aplicando localmente.");
                     ApplyGlow(glow);
                 }
             }
             else
             {
-                Debug.LogWarning("[GRAVE] SetGlowState: photonView é null, aplicando glow localmente");
                 ApplyGlow(glow);
             }
         }
@@ -192,13 +180,11 @@ public class Gravestone : MonoBehaviourPunCallbacks
                 }
                 catch (System.Exception ex)
                 {
-                    Debug.LogWarning($"[GRAVE] RPC_Reset falhou: {ex.Message}. Aplicando reset localmente.");
                     Reset();
                 }
             }
             else
             {
-                Debug.LogWarning("[GRAVE] ResetGravestone: photonView é null, aplicando reset localmente");
                 Reset();
             }
         }

@@ -44,7 +44,6 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
     {
         if (gravestones == null || gravestones.Count == 0)
         {
-            Debug.LogError("[GRAVE] ERRO: Lista de gravestones está vazia! Adiciona as lápides no Inspector do GraveyardMinigame.");
             return;
         }
 
@@ -52,7 +51,6 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
         {
             if (gravestone == null)
             {
-                Debug.LogWarning("[GRAVE] Uma gravestone na lista é null, ignorando...");
                 continue;
             }
             gravestone.Initialize(this, gravestone.DeceasedName);
@@ -62,43 +60,33 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
         
         minigameActive = true;
         currentIndex = 0;
-        minigameCompleted = false;
-        
-        Debug.Log($"[GRAVE] Minigame inicializado com {sortedGravestones.Count} lápides");
+        minigameCompleted = false; 
     }
 
     public void OnGravestoneClicked(Gravestone clickedGravestone)
     {
-        Debug.Log($"[GRAVE] OnGravestoneClicked: {clickedGravestone.DeceasedName}");
-        Debug.Log($"[GRAVE] minigameActive: {minigameActive}, minigameCompleted: {minigameCompleted}");
         
         if (!minigameActive || minigameCompleted)
         {
-            Debug.Log($"[GRAVE] Minigame não está ativo ou já foi completado!");
             return;
         }
 
         string expectedName = sortedGravestones[currentIndex].DeceasedName;
-        Debug.Log($"[GRAVE] Esperado: {expectedName}, Clicado: {clickedGravestone.DeceasedName}, Index: {currentIndex}");
         
         if (sortedGravestones[currentIndex] == clickedGravestone)
         {
-            Debug.Log($"[GRAVE] CORRETO! Acendendo glow amarelo");
             clickedGravestone.SetGlowState(true);
             PlaySound(correctClickSound);
             
             currentIndex++;
-            Debug.Log($"[GRAVE] Progresso: {currentIndex}/{sortedGravestones.Count}");
 
             if (currentIndex >= sortedGravestones.Count)
             {
-                Debug.Log($"[GRAVE] MINIGAME COMPLETO!");
                 CompleteMinigame();
             }
         }
         else
         {
-            Debug.Log($"[GRAVE] ERRADO! Resetando minigame");
             PlaySound(wrongClickSound);
             ResetMinigame();
         }
@@ -127,8 +115,6 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
                 Instantiate(rewardPrefab, rewardSpawnPoint.position, rewardSpawnPoint.rotation);
             }
         }
-
-        Debug.Log("Minigame do cemitério completo! Recompensa desbloqueada!");
     }
 
     private void ResetMinigame()
@@ -182,20 +168,15 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
     {
         Collider[] colliders = Physics.OverlapSphere(playerPosition, interactRange, gravestoneLayerMask);
         
-        Debug.Log($"[GRAVE] OverlapSphere: {colliders.Length} colliders encontrados");
-        Debug.Log($"[GRAVE] InteractRange: {interactRange}, LayerMask value: {gravestoneLayerMask.value}");
-        
         float closestDistance = float.MaxValue;
         Gravestone closestGravestone = null;
 
         foreach (Collider col in colliders)
         {
-            Debug.Log($"[GRAVE] Collider encontrado: {col.name} na layer {LayerMask.LayerToName(col.gameObject.layer)}");
             Gravestone gravestone = col.GetComponent<Gravestone>();
             if (gravestone != null)
             {
                 float distance = Vector3.Distance(playerPosition, col.transform.position);
-                Debug.Log($"[GRAVE] Gravestone válida: {gravestone.DeceasedName} a {distance}m");
                 if (distance < closestDistance)
                 {
                     closestDistance = distance;
@@ -204,17 +185,7 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
             }
             else
             {
-                Debug.Log($"[GRAVE] Collider {col.name} NÃO tem componente Gravestone!");
             }
-        }
-
-        if (closestGravestone != null)
-        {
-            Debug.Log($"[GRAVE] Gravestone mais próxima: {closestGravestone.DeceasedName}");
-        }
-        else
-        {
-            Debug.Log($"[GRAVE] Nenhuma gravestone encontrada no range!");
         }
 
         return closestGravestone;
