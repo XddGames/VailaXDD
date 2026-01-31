@@ -321,10 +321,10 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     }
 
     [PunRPC]
-    private void RPC_KillPlayer()
+    public void RPC_KillPlayer()
     {
         currentState = PlayerState.WaitingRevive;
-        Debug.Log($"Player {gameObject.name} was killed by enemy (RPC)");
+        Debug.Log($"<color=red>Player {gameObject.name} was killed by enemy (RPC received on {(photonView.IsMine ? "LOCAL" : "REMOTE")} client)</color>");
     }
 
     [PunRPC]
