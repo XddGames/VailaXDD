@@ -142,7 +142,9 @@ MonoBehaviour:
   chaseSpeed: 12
   patrolRadius: 50
   sabotageInterval: 30
-  sabotageWalkSpeed: 3.5
+  sabotageWalkSpeed: 7
+  sabotageMinTeleportRange: 20
+  sabotageMaxTeleportRange: 50
   suspicionSystem: {fileID: 0}
   showDebug: 1
 --- !u!195 &899136641117336230
