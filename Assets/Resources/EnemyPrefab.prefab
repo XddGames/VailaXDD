@@ -141,6 +141,8 @@ MonoBehaviour:
   patrolSpeed: 5
   chaseSpeed: 12
   patrolRadius: 50
+  sabotageInterval: 30
+  sabotageWalkSpeed: 3.5
   suspicionSystem: {fileID: 0}
   showDebug: 1
 --- !u!195 &899136641117336230
