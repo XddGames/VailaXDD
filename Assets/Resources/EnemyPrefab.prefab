@@ -138,9 +138,9 @@ MonoBehaviour:
   observeGainRateClose: 0.3
   observeGainRateFar: 0.1
   decayRate: 0.1
-  patrolSpeed: 3.5
-  chaseSpeed: 5.5
-  patrolRadius: 25
+  patrolSpeed: 5
+  chaseSpeed: 12
+  patrolRadius: 50
   suspicionSystem: {fileID: 0}
   showDebug: 1
 --- !u!195 &899136641117336230
