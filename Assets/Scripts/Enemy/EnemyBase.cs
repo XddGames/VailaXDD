@@ -6,7 +6,7 @@ using Photon.Pun;
 
 public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
 {
-    public enum EnemyState { Teleporting, Observing, Patrolling, Chasing }
+    public enum EnemyState { Teleporting, Observing, Patrolling, Chasing, Sabotaging }
 
     [Header("Attack")]
     [SerializeField] private float attackRange = 2.5f;
@@ -35,6 +35,13 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
     [SerializeField] private float patrolSpeed = 3f;
     [SerializeField] private float chaseSpeed = 6f;
     [SerializeField] private float patrolRadius = 40f; // Larger patrol radius for forest
+
+    [Header("Sabotage")]
+    [SerializeField] private float sabotageInterval = 30f; // Wait this long before breaking another
+    [SerializeField] private float sabotageWalkSpeed = 3.5f;
+    private List<PowerGenerator> allGenerators = new List<PowerGenerator>();
+    private PowerGenerator currentTargetGen;
+    private float sabotageTimer;
 
     [Header("UI")]
     [SerializeField] private SuspicionSystem suspicionSystem; // Drag your fill Image component here
@@ -175,6 +182,9 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         // Find players after scene is fully loaded
         FindAllPlayers();
 
+        allGenerators.AddRange(FindObjectsOfType<PowerGenerator>());
+        Debug.Log($"Enemy found {allGenerators.Count} generators to sabotage.");
+
         // Refresh player list after a short delay (in case players spawn late)
         Invoke(nameof(FindAllPlayers), 1f);
     }
@@ -203,6 +213,7 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
             case EnemyState.Observing: UpdateObserving(); break;
             case EnemyState.Patrolling: UpdatePatrolling(); break;
             case EnemyState.Chasing: UpdateChasing(); break;
+            case EnemyState.Sabotaging: UpdateSabotaging(); break;
         }
 
         UpdateSuspicionUI();
@@ -253,6 +264,20 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
             state = EnemyState.Observing;
             target = nearest;
             return;
+        }
+
+        sabotageTimer += Time.deltaTime;
+        if (sabotageTimer >= sabotageInterval)
+        {
+            PowerGenerator targetGen = GetActiveGenerator();
+            
+            if (targetGen != null)
+            {
+                currentTargetGen = targetGen;
+                
+                ChangeState(EnemyState.Sabotaging); 
+                return;
+            }
         }
 
         teleportTimer += Time.deltaTime;
@@ -541,6 +566,43 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
             Debug.LogWarning("No patrol points generated! Returning to teleporting.");
             state = EnemyState.Teleporting;
         }
+    }
+    // ===== SABOTAGE =====
+    void UpdateSabotaging()
+    {
+        if (currentTargetGen == null || !currentTargetGen.IsOn)
+        {
+            state = EnemyState.Teleporting;
+            sabotageTimer = 0f;
+            return;
+        }
+
+        Transform nearest = GetNearestInRange(observeRange);
+        if (nearest != null)
+        {
+            Debug.Log("Saw player while sabotaging! Aborting sabotage.");
+            state = EnemyState.Observing;
+            target = nearest;
+            return;
+        }
+
+        agent.isStopped = false;
+        agent.speed = sabotageWalkSpeed;
+        agent.SetDestination(currentTargetGen.transform.position);
+
+        if (Vector3.Distance(transform.position, currentTargetGen.transform.position) < 3.0f)
+        {
+            currentTargetGen.EnemySabotage();
+            sabotageTimer = 0f;
+            state = EnemyState.Teleporting;
+        }
+    }
+
+    PowerGenerator GetActiveGenerator()
+    {
+        foreach (var gen in allGenerators)
+            if (gen != null && gen.IsOn) return gen;
+        return null;
     }
 
     void GeneratePatrol(Vector3 center)
