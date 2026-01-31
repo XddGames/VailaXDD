@@ -191,12 +191,16 @@ MonoBehaviour:
   staminaDrainRate: 20
   staminaRegenRate: 15
   staminaRegenDelay: 1
+  jumpStaminaCost: 15
   mouseSensitivity: 0.2
   maxLookAngle: 75.7
   interactRange: 3
   generatorLayerMask:
     serializedVersion: 2
     m_Bits: 128
+  gravestoneLayerMask:
+    serializedVersion: 2
+    m_Bits: 0
 --- !u!114 &6725692040602590194
 MonoBehaviour:
   m_ObjectHideFlags: 0

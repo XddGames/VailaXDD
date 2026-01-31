@@ -59,6 +59,10 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     private PowerGenerator currentGenerator = null;
     private float generatorProgress = 0f;
 
+    [Header("Graveyard Minigame")]
+    [SerializeField] private LayerMask gravestoneLayerMask;
+    private GraveyardMinigame currentGraveyardMinigame;
+
     private const float GROUND_STICK_FORCE = -2f;
     private const float INPUT_THRESHOLD = 0.1f;
     private const float JUMP_GRAVITY_MULTIPLIER = 1.5f;
@@ -204,6 +208,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 HandleStamina();
                 HandleRevive();
                 HandleGenerator();
+                HandleGraveyardInteraction();
                 break;
             case PlayerState.WaitingRevive:
                 HandleCameraRotation();
@@ -352,6 +357,27 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         }
 
         return null;
+    }
+
+    private void HandleGraveyardInteraction()
+    {
+        if (!inputHandler.interactInput || !lastInteractState)
+            return;
+
+        if (currentGraveyardMinigame == null)
+        {
+            currentGraveyardMinigame = FindAnyObjectByType<GraveyardMinigame>();
+        }
+
+        if (currentGraveyardMinigame != null && currentGraveyardMinigame.IsMinigameActive())
+        {
+            Gravestone nearbyGravestone = currentGraveyardMinigame.FindGravestoneInRange(transform.position);
+            
+            if (nearbyGravestone != null)
+            {
+                nearbyGravestone.OnClicked(this);
+            }
+        }
     }
 
     public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
@@ -693,9 +719,24 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     private void OnGUI()
     {
-        // Don't show UI when spectating
         if (currentState == PlayerState.Spectating)
             return;
+
+        if (currentGraveyardMinigame != null && currentGraveyardMinigame.IsMinigameActive())
+        {
+            int progress = currentGraveyardMinigame.GetCurrentProgress();
+            int total = currentGraveyardMinigame.GetTotalGravestones();
+            string nextName = currentGraveyardMinigame.GetNextExpectedName();
+            
+            GUI.Box(new Rect(Screen.width / 2 - 150, 20, 300, 60), "");
+            GUI.Label(new Rect(Screen.width / 2 - 140, 30, 280, 20), $"Cemitério: {progress}/{total}");
+            GUI.Label(new Rect(Screen.width / 2 - 140, 50, 280, 20), $"Próximo: {nextName}");
+        }
+
+        if (currentGraveyardMinigame != null && currentGraveyardMinigame.IsMinigameCompleted())
+        {
+            GUI.Label(new Rect(Screen.width / 2 - 100, 100, 200, 30), "MINIGAME COMPLETO!");
+        }
             
         if (playerBeingRevived != null)
         {
