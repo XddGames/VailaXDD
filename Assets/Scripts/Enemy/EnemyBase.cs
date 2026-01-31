@@ -69,8 +69,6 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         // Find all PlayerController components in the scene
         PlayerController[] allPlayers = FindObjectsOfType<PlayerController>();
         
-        Debug.Log($"<color=cyan>FindAllPlayers: Found {allPlayers.Length} PlayerController components in scene</color>");
-
         foreach (PlayerController pc in allPlayers)
         {
             // Only add if it has a PhotonView and is a real player instance
@@ -79,7 +77,6 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
             {
                 Players.Add(pc.transform);
                 playerControllers.Add(pc);
-                Debug.Log($"<color=cyan>Enemy found player: {pc.name} (ViewID: {pv.ViewID}, IsMine: {pv.IsMine}, Owner: {pv.Owner?.NickName})</color>");
             }
             else
             {
@@ -92,8 +89,6 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         {
             suspicionLevels = new float[Players.Count];
         }
-
-        Debug.Log($"<color=cyan>Enemy tracking {Players.Count} players</color>");
     }
 
     public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
