@@ -94,8 +94,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         if (photonView.IsMine && PhotonNetwork.IsConnected)
         {
             // LOCAL PLAYER - Setup controls
-            Debug.Log("LOCAL PLAYER - Setting up controls");
-
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
 
@@ -105,7 +103,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 inputHandler = FindAnyObjectByType<InputHandler>();
                 if (inputHandler == null)
                 {
-                    Debug.LogError("InputHandler not found! PlayerController disabled.");
                     enabled = false;
                     return;
                 }
@@ -133,14 +130,10 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                     listener.enabled = true;
                 }
             }
-
-            Debug.Log($"Player setup complete. Camera: {playerCamera?.name}, InputHandler: {inputHandler?.name}");
         }
         else if (PhotonNetwork.IsConnected)
         {
             // REMOTE PLAYER - Disable camera and input only
-            Debug.Log("REMOTE PLAYER - Disabling camera and input");
-
             if (playerCamera != null)
             {
                 playerCamera.enabled = false;
@@ -162,9 +155,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             {
                 inputHandler.enabled = false;
             }
-
-            // Keep the controller enabled but it won't process input
-            // This allows gravity and physics to still work for visual sync
         }
     }
     private void HandleRemotePlayerPhysics()
@@ -189,12 +179,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         }
 
         if (inputHandler == null) return;
-        
-        // Debug: Log state occasionally
-        if (Time.frameCount % 120 == 0) // Every 2 seconds
-        {
-            Debug.Log($"Player {gameObject.name} current state: {currentState}");
-        }
 
         switch (currentState)
         {
@@ -229,7 +213,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 photonView.RPC(nameof(RPC_CancelRevive), RpcTarget.All, playerBeingRevived.photonView.ViewID);
                 playerBeingRevived = null;
                 reviveProgress = 0f;
-                Debug.Log("Stopped reviving - interact key released");
             }
             return;
         }
@@ -241,18 +224,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             {
                 playerBeingRevived = downedPlayer;
                 reviveProgress = 0f;
-
-                Debug.Log($"Started reviving {downedPlayer.name}");
-                // Tell everyone we're starting to revive this player
                 photonView.RPC(nameof(RPC_StartRevive), RpcTarget.All, downedPlayer.photonView.ViewID);
-            }
-            else
-            {
-                // Debug: No downed player found
-                if (Time.frameCount % 60 == 0) // Log every second
-                {
-                    Debug.Log($"Looking for downed players in range {reviveRange}m...");
-                }
             }
             return;
         }
@@ -261,7 +233,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         float distance = Vector3.Distance(transform.position, playerBeingRevived.transform.position);
         if (distance > reviveRange)
         {
-            // Too far away, cancel
             photonView.RPC(nameof(RPC_CancelRevive), RpcTarget.All, playerBeingRevived.photonView.ViewID);
             playerBeingRevived = null;
             reviveProgress = 0f;
@@ -273,7 +244,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
         if (reviveProgress >= reviveTime)
         {
-            // Revive complete!
             photonView.RPC(nameof(RPC_CompleteRevive), RpcTarget.All, playerBeingRevived.photonView.ViewID);
             playerBeingRevived = null;
             reviveProgress = 0f;
@@ -282,21 +252,10 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     private void HandleWaitingRevive()
     {
-        // Countdown timer
         reviveTimer += Time.deltaTime;
         
-        // Display timer to player
-        if (Time.frameCount % 30 == 0) // Every half second
-        {
-            float timeRemaining = reviveTimeLimit - reviveTimer;
-            Debug.Log($"<color=orange>Waiting for revive... {timeRemaining:F0}s remaining</color>");
-        }
-        
-        // Check if time ran out
         if (reviveTimer >= reviveTimeLimit)
         {
-            // Permanent death - go to spectator
-            Debug.Log("<color=red>Revive timer expired! Entering spectator mode...</color>");
             photonView.RPC(nameof(RPC_EnterSpectator), RpcTarget.All);
         }
     }
@@ -309,7 +268,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         {
             if (currentGenerator != null)
             {
-                Debug.Log("Stopped fixing generator - key released");
                 currentGenerator = null;
                 generatorProgress = 0f;
             }
@@ -324,7 +282,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             {
                 currentGenerator = foundGen;
                 generatorProgress = 0f;
-                Debug.Log("Started fixing generator...");
             }
             return;
         }
@@ -363,15 +320,10 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     private PlayerController FindDownedPlayerInRange()
     {
         Collider[] colliders = Physics.OverlapSphere(transform.position, reviveRange, playerLayerMask);
-        
-        if (Time.frameCount % 60 == 0 && colliders.Length > 0) // Debug every second
-        {
-            Debug.Log($"Found {colliders.Length} colliders in revive range");
-        }
 
         foreach (Collider col in colliders)
         {
-            if (col.transform == transform) continue; // Skip self
+            if (col.transform == transform) continue;
 
             PlayerController pc = col.GetComponent<PlayerController>();
             if (pc != null)
@@ -379,14 +331,8 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 PlayerState pcState = pc.GetCurrentState();
                 bool beingRevived = pc.isBeingRevived;
                 
-                if (Time.frameCount % 60 == 0) // Debug
-                {
-                    Debug.Log($"Found player {pc.name}: State={pcState}, BeingRevived={beingRevived}");
-                }
-                
                 if (pcState == PlayerState.WaitingRevive && !beingRevived)
                 {
-                    Debug.Log($"Found downed player to revive: {pc.name}");
                     return pc;
                 }
             }
@@ -399,7 +345,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     {
         if (stream.IsWriting)
         {
-            // Local player - send data to network
             stream.SendNext(transform.position);
             stream.SendNext(transform.rotation);
             stream.SendNext(velocity);
@@ -407,24 +352,17 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         }
         else
         {
-            // Remote player - receive data from network
             networkPosition = (Vector3)stream.ReceiveNext();
             networkRotation = (Quaternion)stream.ReceiveNext();
             networkVelocity = (Vector3)stream.ReceiveNext();
 
             int stateInt = (int)stream.ReceiveNext();
-            // Don't overwrite state here - RPCs handle state changes
-            // Only sync state if it's significantly different (for initial sync)
             PlayerState networkState = (PlayerState)stateInt;
             if (currentState == PlayerState.Alive && networkState != PlayerState.Alive)
             {
-                // Only update to non-Alive states if we're currently Alive
-                // This prevents network lag from overwriting RPC state changes
                 currentState = networkState;
-                Debug.Log($"State synced from network: {currentState}");
             }
 
-            // Smooth interpolation
             float lag = Mathf.Abs((float)(PhotonNetwork.Time - info.SentServerTime));
             networkPosition += networkVelocity * lag;
         }
@@ -435,11 +373,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     {
         PlayerState oldState = currentState;
         currentState = PlayerState.WaitingRevive;
-        reviveTimer = 0f; // Reset the death timer
-        Debug.Log($"<color=red>Player {gameObject.name} STATE CHANGED: {oldState} -> {currentState} (RPC received on {(photonView.IsMine ? "LOCAL" : "REMOTE")} client)</color>");
-        
-        // Log what should happen next
-        Debug.Log($"Player should now be in WaitingRevive state. IsMine: {photonView.IsMine}");
+        reviveTimer = 0f;
     }
 
     [PunRPC]
@@ -452,7 +386,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             if (target != null)
             {
                 target.isBeingRevived = true;
-                Debug.Log($"Started reviving {target.name}");
             }
         }
     }
@@ -467,7 +400,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             if (target != null)
             {
                 target.isBeingRevived = false;
-                Debug.Log($"Cancelled reviving {target.name}");
             }
         }
     }
@@ -483,8 +415,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             {
                 target.ChangeState(PlayerState.Alive);
                 target.isBeingRevived = false;
-                target.reviveTimer = 0f; // Reset death timer
-                Debug.Log($"Revived {target.name}!");
+                target.reviveTimer = 0f;
             }
         }
     }
@@ -494,13 +425,11 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     {
         currentState = PlayerState.Spectating;
         
-        // Disable player controls
         if (characterController != null)
         {
             characterController.enabled = false;
         }
         
-        // Hide the player body and disable colliders so enemy can't target it
         Renderer[] renderers = GetComponentsInChildren<Renderer>();
         foreach (Renderer renderer in renderers)
         {
@@ -513,10 +442,8 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             collider.enabled = false;
         }
         
-        // Only enable spectator camera for the LOCAL player who died
         if (photonView.IsMine)
         {
-            // Disable player UI
             if (playerUI != null)
             {
                 playerUI.SetActive(false);
@@ -526,13 +453,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             {
                 spectatorCamera.StartSpectating();
             }
-            else
-            {
-                Debug.LogWarning("No SpectatorCamera component found! Add SpectatorCamera to player prefab.");
-            }
         }
-        
-        Debug.Log($"<color=blue>Player {gameObject.name} entered spectator mode - body hidden and colliders disabled (IsMine: {photonView.IsMine})</color>");
     }
 
     public float GetReviveProgress()
@@ -572,12 +493,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     {
         Vector2 input = inputHandler.movementInput;
 
-        // Debug - remove later
-        if (input.sqrMagnitude > 0.001f)
-        {
-            Debug.Log($"Input detected: {input} | Magnitude: {input.magnitude} | Grounded: {isGrounded}");
-        }
-
         Transform camTransform = playerCamera.transform;
         Vector3 forward = camTransform.forward;
         Vector3 right = camTransform.right;
@@ -605,9 +520,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 float frictionFactor = Mathf.Max(0f, 1f - groundFriction * Time.deltaTime);
                 horizontalVelocity *= frictionFactor;
 
-                Debug.Log($"Friction applied. HVel after: {horizontalVelocity.magnitude:F2}");
-
-                // Stop completely when very slow
                 if (horizontalVelocity.sqrMagnitude < 0.1f)
                 {
                     horizontalVelocity = Vector3.zero;
@@ -616,7 +528,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             else
             {
                 horizontalVelocity = targetVelocity;
-                Debug.Log($"Setting velocity to target: {targetVelocity.magnitude:F2}");
             }
         }
         else
