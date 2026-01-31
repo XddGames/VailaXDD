@@ -500,11 +500,10 @@ public class EnemyBase : MonoBehaviourPunCallbacks
     /// </summary>
     /// <param name="player">The player transform to increase suspicion for</param>
     /// <param name="amount">Amount to add (0-1 range recommended, will be clamped)</param>
-    public void IncreaseSuspicion(Transform player, float amount)
+    public void IncreaseSuspicion(int playerIndex, float amount)
     {
-        if (player == null || Players == null) return;
+        if (Players == null) return;
         
-        int playerIndex = Players.IndexOf(player);
         if (playerIndex >= 0 && playerIndex < suspicionLevels.Length)
         {
             suspicionLevels[playerIndex] = Mathf.Clamp01(suspicionLevels[playerIndex] + amount);
