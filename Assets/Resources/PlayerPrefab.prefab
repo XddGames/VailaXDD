@@ -193,6 +193,10 @@ MonoBehaviour:
   staminaRegenDelay: 1
   mouseSensitivity: 0.2
   maxLookAngle: 75.7
+  interactRange: 3
+  generatorLayerMask:
+    serializedVersion: 2
+    m_Bits: 0
 --- !u!114 &6725692040602590194
 MonoBehaviour:
   m_ObjectHideFlags: 0

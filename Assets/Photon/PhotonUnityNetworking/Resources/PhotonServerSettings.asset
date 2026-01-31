@@ -45,11 +45,8 @@ MonoBehaviour:
   - RPC_StartRevive
   - RPC_SyncState
   - RPC_KillPlayer
-<<<<<<< HEAD
   - RPC_SetState
-=======
   - RPC_EnterSpectator
->>>>>>> 1bafcd159dd8661354c7c954c364581bdefd90cd
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 0
