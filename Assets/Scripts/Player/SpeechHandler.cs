@@ -1,13 +1,18 @@
 using UnityEngine;
 using UnityEngine.Windows.Speech;
+using System;
+using System.Collections.Generic;
+using Photon.Pun;
 
 public class SpeechHandler : MonoBehaviour
 {
     private Dictionary<string, Action> commandMap;
     private DictationRecognizer m_DictationRecognizer;
+    EnemyBase enemy;
 
     void Start()
     {
+        enemy = GameObject.FindAnyObjectByType<EnemyBase>();
         commandMap = new Dictionary<string, Action>
         {
             { "Clanker", IncreaseMySuspicion },
@@ -20,7 +25,7 @@ public class SpeechHandler : MonoBehaviour
             // Check to see if player said something that is a command
             if (commandMap.ContainsKey(text))
             {
-                Debug.Log($"Player Said {text}. Command Exists")
+                Debug.Log($"Player Said {text}. Command Exists");
                 commandMap[text].Invoke();
             }
         };
@@ -30,7 +35,8 @@ public class SpeechHandler : MonoBehaviour
 
     void IncreaseMySuspicion()
     {
-
+        int playerId = (PhotonNetwork.IsMasterClient)? 0 : 1;
+        enemy.IncreaseSuspicion(playerId, 0.25f);
     }
 
     void OpenLastDoorEasterEgg()

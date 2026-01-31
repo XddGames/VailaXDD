@@ -505,24 +505,7 @@ public class EnemyBase : MonoBehaviourPunCallbacks
         if (Players == null) return;
         
         if (playerIndex >= 0 && playerIndex < suspicionLevels.Length)
-        {
             suspicionLevels[playerIndex] = Mathf.Clamp01(suspicionLevels[playerIndex] + amount);
-            
-            // Update last known position when suspicion is added externally
-            if (amount > 0)
-            {
-                lastKnownPlayerPos = player.position;
-                timeSinceLastSighting = 0f;
-                
-                // Trigger subtle investigation reaction (only if not already watching or chasing)
-                if (!isWatchingPlayer && !isInvestigating && CurrentState != EnemyState.Chasing)
-                {
-                    investigateDirection = (player.position - transform.position).normalized;
-                    isInvestigating = true;
-                    investigateTimer = 0f;
-                }
-            }
-        }
     }
 
     /// <summary>
