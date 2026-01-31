@@ -44,8 +44,8 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     private void Start()
     {
-        if (!photonView.IsMine && PhotonNetwork.IsConnected)
-        {
+        //if (!photonView.IsMine && PhotonNetwork.IsConnected)
+       /* {
             if (playerCamera != null)
                 playerCamera.enabled = false;
             
@@ -54,14 +54,14 @@ public class PlayerController : MonoBehaviourPunCallbacks
             
             enabled = false;
             return;
-        }
+        }*/
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
         if (inputHandler == null)
         {
-            inputHandler = FindObjectOfType<InputHandler>();
+            inputHandler = FindAnyObjectByType<InputHandler>();
             if (inputHandler == null)
             {
                 Debug.LogError("InputHandler not found! PlayerController disabled.");
@@ -84,7 +84,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     private void Update()
     {
-        if (!photonView.IsMine && PhotonNetwork.IsConnected) return;
+        //if (!photonView.IsMine && PhotonNetwork.IsConnected) return;
         if (inputHandler == null) return;
 
         HandleGroundCheck();
