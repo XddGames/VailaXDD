@@ -1,8 +1,15 @@
 using UnityEngine;
 using Photon.Pun;
-
+    public enum PlayerState
+    {
+        Alive,
+        WaitingRevive,
+        Spectating,
+        SinglePlayerDead
+    }
 [RequireComponent(typeof(CharacterController))]
 [RequireComponent(typeof(PlayerMask))]
+
 public class PlayerController : MonoBehaviourPunCallbacks
 {
     [Header("References")]
@@ -36,9 +43,15 @@ public class PlayerController : MonoBehaviourPunCallbacks
     private bool isGrounded;
     private bool lastInteractState;
     private float lastInteractionTime;
+    private PlayerState currentState;
 
+     public PlayerState GetCurrentState()
+    {
+        return currentState;
+    }
     private void Awake()
     {
+        currentState = PlayerState.Alive;
         characterController = GetComponent<CharacterController>();
         playerMask = GetComponent<PlayerMask>();
     }
@@ -46,16 +59,16 @@ public class PlayerController : MonoBehaviourPunCallbacks
     private void Start()
     {
         //if (!photonView.IsMine && PhotonNetwork.IsConnected)
-       /* {
-            if (playerCamera != null)
-                playerCamera.enabled = false;
-            
-            if (inputHandler != null)
-                inputHandler.enabled = false;
-            
-            enabled = false;
-            return;
-        }*/
+        /* {
+             if (playerCamera != null)
+                 playerCamera.enabled = false;
+
+             if (inputHandler != null)
+                 inputHandler.enabled = false;
+
+             enabled = false;
+             return;
+         }*/
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
@@ -88,11 +101,33 @@ public class PlayerController : MonoBehaviourPunCallbacks
         //if (!photonView.IsMine && PhotonNetwork.IsConnected) return;
         if (inputHandler == null) return;
 
-        HandleGroundCheck();
-        HandleMovement();
-        HandleJump();
-        HandleInteraction();
-        HandleCameraRotation();
+
+
+        switch (currentState)
+        {
+            case PlayerState.Alive:
+                HandleGroundCheck();
+                HandleMovement();
+                HandleJump();
+                HandleInteraction();
+                HandleCameraRotation();
+                break;
+            case PlayerState.WaitingRevive:
+                HandleCameraRotation();
+                break;
+            case PlayerState.Spectating:
+                break;
+            case PlayerState.SinglePlayerDead:
+                break;
+        }
+        
+    }
+
+    public PlayerState ChangeState(PlayerState newState)
+    {
+        PlayerState tempState = currentState;
+        currentState = newState;
+        return tempState;
     }
 
     private void HandleGroundCheck()
@@ -109,24 +144,24 @@ public class PlayerController : MonoBehaviourPunCallbacks
     private void HandleMovement()
     {
         Vector2 input = inputHandler.movementInput;
-        
+
         // Debug - remove later
         if (input.sqrMagnitude > 0.001f)
         {
             Debug.Log($"Input detected: {input} | Magnitude: {input.magnitude} | Grounded: {isGrounded}");
         }
-        
+
         Transform camTransform = playerCamera.transform;
         Vector3 forward = camTransform.forward;
         Vector3 right = camTransform.right;
-        
+
         forward.y = 0f;
         right.y = 0f;
         forward.Normalize();
         right.Normalize();
 
         Vector3 moveDirection = forward * input.y + right * input.x;
-        
+
         float moveMagnitudeSqr = moveDirection.sqrMagnitude;
         if (moveMagnitudeSqr > 1f)
         {
@@ -135,20 +170,20 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
         float currentSpeed = CalculateSpeed();
         Vector3 targetVelocity = moveDirection * currentSpeed;
-        
+
         if (isGrounded)
         {
             // Debug - remove later
             Debug.Log($"Input: {input} | InputMag: {input.sqrMagnitude:F4} | Threshold: {INPUT_THRESHOLD * INPUT_THRESHOLD:F4} | Applying Friction: {input.sqrMagnitude < INPUT_THRESHOLD * INPUT_THRESHOLD}");
-            
+
             if (input.sqrMagnitude < INPUT_THRESHOLD * INPUT_THRESHOLD)
             {
                 // Apply friction by reducing velocity exponentially
                 float frictionFactor = Mathf.Max(0f, 1f - groundFriction * Time.deltaTime);
                 horizontalVelocity *= frictionFactor;
-                
+
                 Debug.Log($"Friction applied. HVel after: {horizontalVelocity.magnitude:F2}");
-                
+
                 // Stop completely when very slow
                 if (horizontalVelocity.sqrMagnitude < 0.1f)
                 {
@@ -165,19 +200,19 @@ public class PlayerController : MonoBehaviourPunCallbacks
         {
             Vector3 airControl = targetVelocity * airControlPercent;
             horizontalVelocity += airControl * Time.deltaTime;
-            
+
             float maxAirSpeed = Mathf.Max(walkSpeed, sprintSpeed);
             if (horizontalVelocity.magnitude > maxAirSpeed)
             {
                 horizontalVelocity = horizontalVelocity.normalized * maxAirSpeed;
             }
         }
-        
+
         velocity.y += gravity * Time.deltaTime;
-        
+
         Vector3 finalMovement = horizontalVelocity * Time.deltaTime;
         finalMovement.y = velocity.y * Time.deltaTime;
-        
+
         characterController.Move(finalMovement);
     }
 
@@ -218,7 +253,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
         bool newState = !playerMask.HasMaskOn;
         playerMask.SetMaskState(newState);
-        
+
         if (PhotonNetwork.IsConnected && photonView != null)
         {
             photonView.RPC(nameof(SyncMaskState), RpcTarget.OthersBuffered, newState);
@@ -242,7 +277,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
         verticalRotation -= lookInput.y * mouseSensitivity;
         verticalRotation = Mathf.Clamp(verticalRotation, -maxLookAngle, maxLookAngle);
-        
+
         playerCamera.transform.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
     }
 

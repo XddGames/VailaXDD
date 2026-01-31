@@ -14,7 +14,7 @@ public class SuspicionSystem : MonoBehaviour
     [Header("Debug Control (0 to 1)")]
     [Range(0, 1)] 
     public float suspicionLevel = 0;
-
+    
     void Update()
     {
         if (suspicionRing == null || statusText == null) return;
@@ -27,6 +27,9 @@ public class SuspicionSystem : MonoBehaviour
         {
             suspicionRing.color = alertGradient.Evaluate(suspicionLevel);
         }
+
+        if (suspicionLevel >= 0.4f)
+
 
         // 3. Mudar o Texto (? ou !)
         if (suspicionLevel >= 1f)

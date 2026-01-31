@@ -1,11 +1,15 @@
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.UI;
 using System.Collections.Generic;
 using Photon.Pun;
 
 public class EnemyBase : MonoBehaviourPunCallbacks
 {
     public enum EnemyState { Teleporting, Observing, Patrolling, Chasing }
+
+    [Header("Attack")]
+    [SerializeField] private float attackRange = 2.5f;
 
     [Header("Players")]
     [SerializeField] private List<Transform> Players;
@@ -31,6 +35,9 @@ public class EnemyBase : MonoBehaviourPunCallbacks
     [SerializeField] private float chaseSpeed = 6f;
     [SerializeField] private float patrolRadius = 40f; // Larger patrol radius for forest
 
+    [Header("UI")]
+    [SerializeField] private SuspicionSystem suspicionSystem; // Drag your fill Image component here
+    
     [Header("Debug")]
     [SerializeField] private bool showDebug = true;
 
@@ -96,6 +103,18 @@ public class EnemyBase : MonoBehaviourPunCallbacks
             case EnemyState.Observing: UpdateObserving(); break;
             case EnemyState.Patrolling: UpdatePatrolling(); break;
             case EnemyState.Chasing: UpdateChasing(); break;
+        }
+        
+        UpdateSuspicionUI();
+    }
+    
+    void UpdateSuspicionUI()
+    {
+        if (suspicionSystem != null)
+        {
+            float maxSus = GetMaxSuspicion();
+            // Fill amount goes from 0 to 1 based on suspicion threshold
+            suspicionSystem.suspicionLevel = maxSus / suspicionToChase;
         }
     }
     
@@ -269,100 +288,112 @@ public class EnemyBase : MonoBehaviourPunCallbacks
     }
 
     // ===== OBSERVING =====
-    void UpdateObserving()
+void UpdateObserving()
+{
+    agent.isStopped = true;
+
+    if (target == null)
     {
-        agent.isStopped = true;
-
-        if (target == null)
-        {
-            state = EnemyState.Teleporting;
-            return;
-        }
-
-        float dist = Vector3.Distance(transform.position, target.position);
-        if (dist > observeRange)
-        {
-            state = EnemyState.Teleporting;
-            target = null;
-            return;
-        }
-
-        // Make enemy stare directly at the player - aim for head/center
-        Vector3 targetPos = target.position + Vector3.up * 1.5f; // Look at player's head height
-        Vector3 dir = (targetPos - transform.position).normalized;
-        
-        // Fast, direct rotation to stare intensely
-        Quaternion targetRotation = Quaternion.LookRotation(dir);
-        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 8f);
-
-        int idx = Players.IndexOf(target);
-        if (idx >= 0)
-        {
-            // Apply mask effect - mask reduces suspicion gain
-            float maskEffect = GetPlayerMask(target);
-            
-            // Distance-based suspicion gain - slower from far away, faster up close
-            float distance = Vector3.Distance(transform.position, target.position);
-            float distanceRatio = distance / observeRange; // 0 = very close, 1 = at max range
-            float distanceBasedGain = Mathf.Lerp(observeGainRateClose, observeGainRateFar, distanceRatio);
-            
-            float effectiveSuspicionGain = distanceBasedGain * maskEffect * Time.deltaTime;
-            
-            suspicionLevels[idx] += effectiveSuspicionGain;
-            suspicionLevels[idx] = Mathf.Clamp01(suspicionLevels[idx]);
-
-            if (suspicionLevels[idx] >= suspicionToPatrol)
-            {
-                state = EnemyState.Patrolling;
-                GeneratePatrol(target.position);
-            }
-        }
+        state = EnemyState.Teleporting;
+        return;
     }
 
-    // ===== PATROLLING =====
-    void UpdatePatrolling()
+    // Check if target is still alive
+    PlayerController targetController = target.GetComponent<PlayerController>();
+    if (targetController != null && targetController.GetCurrentState() != PlayerState.Alive)
     {
-        // Ensure agent is properly configured
-        if (!agent.isOnNavMesh)
-        {
-            Debug.LogError($"Agent not on NavMesh during patrol! Position: {transform.position}");
-            state = EnemyState.Teleporting;
-            return;
-        }
+        state = EnemyState.Teleporting;
+        target = null;
+        return;
+    }
+
+    float dist = Vector3.Distance(transform.position, target.position);
+    if (dist > observeRange)
+    {
+        state = EnemyState.Teleporting;
+        target = null;
+        return;
+    }
+
+    // Make enemy stare directly at the player - aim for head/center
+    Vector3 targetPos = target.position + Vector3.up * 1.5f; // Look at player's head height
+    Vector3 dir = (targetPos - transform.position).normalized;
+    
+    // Fast, direct rotation to stare intensely
+    Quaternion targetRotation = Quaternion.LookRotation(dir);
+    transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 8f);
+
+    int idx = Players.IndexOf(target);
+    if (idx >= 0)
+    {
+        // Apply mask effect - mask reduces suspicion gain
+        float maskEffect = GetPlayerMask(target);
         
-        agent.isStopped = false;
-        agent.speed = patrolSpeed;
-
-        Transform mostSus = GetMostSuspicious();
-        if (mostSus == null)
-        {
-            Debug.Log("No suspicious player found, returning to teleporting");
-            state = EnemyState.Teleporting;
-            return;
-        }
-
-        float maxSus = GetMaxSuspicion();
-
-        if (maxSus < suspicionToPatrol * 0.6f)
-        {
-            state = EnemyState.Observing;
-            target = mostSus;
-            return;
-        }
-
-        if (maxSus >= suspicionToChase)
-        {
-            state = EnemyState.Chasing;
-            patrolPoints.Clear();
-            return;
-        }
+        // Distance-based suspicion gain - slower from far away, faster up close
+        float distance = Vector3.Distance(transform.position, target.position);
+        float distanceRatio = distance / observeRange; // 0 = very close, 1 = at max range
+        float distanceBasedGain = Mathf.Lerp(observeGainRateClose, observeGainRateFar, distanceRatio);
         
-        // Gain suspicion while patrolling if player is nearby
-        float distToPlayer = Vector3.Distance(transform.position, mostSus.position);
-        if (distToPlayer <= patrolSuspicionRange)
+        float effectiveSuspicionGain = distanceBasedGain * maskEffect * Time.deltaTime;
+        
+        suspicionLevels[idx] += effectiveSuspicionGain;
+        suspicionLevels[idx] = Mathf.Clamp01(suspicionLevels[idx]);
+
+        if (suspicionLevels[idx] >= suspicionToPatrol)
         {
-            int playerIdx = Players.IndexOf(mostSus);
-            if (playerIdx >= 0)
+            state = EnemyState.Patrolling;
+            GeneratePatrol(target.position);
+        }
+    }
+}
+
+    // ===== PATROLLING =====
+void UpdatePatrolling()
+{
+    // Ensure agent is properly configured
+    if (!agent.isOnNavMesh)
+    {
+        Debug.LogError($"Agent not on NavMesh during patrol! Position: {transform.position}");
+        state = EnemyState.Teleporting;
+        return;
+    }
+    
+    agent.isStopped = false;
+    agent.speed = patrolSpeed;
+
+    Transform mostSus = GetMostSuspicious();
+    if (mostSus == null)
+    {
+        Debug.Log("No suspicious player found, returning to teleporting");
+        state = EnemyState.Teleporting;
+        return;
+    }
+
+    float maxSus = GetMaxSuspicion();
+
+    if (maxSus < suspicionToPatrol * 0.6f)
+    {
+        state = EnemyState.Observing;
+        target = mostSus;
+        return;
+    }
+
+    if (maxSus >= suspicionToChase)
+    {
+        state = EnemyState.Chasing;
+        patrolPoints.Clear();
+        return;
+    }
+    
+    // Gain suspicion while patrolling if player is nearby AND ALIVE
+    float distToPlayer = Vector3.Distance(transform.position, mostSus.position);
+    if (distToPlayer <= patrolSuspicionRange)
+    {
+        int playerIdx = Players.IndexOf(mostSus);
+        if (playerIdx >= 0)
+        {
+            PlayerController pc = mostSus.GetComponent<PlayerController>();
+            if (pc != null && pc.GetCurrentState() == PlayerState.Alive)
             {
                 // Apply mask effect and distance-based gain
                 float maskEffect = GetPlayerMask(mostSus);
@@ -376,34 +407,35 @@ public class EnemyBase : MonoBehaviourPunCallbacks
                 suspicionLevels[playerIdx] = Mathf.Clamp01(suspicionLevels[playerIdx]);
             }
         }
+    }
 
-        if (patrolPoints.Count == 0)
-        {
-            Debug.Log("Generating patrol points");
-            GeneratePatrol(mostSus.position);
-        }
+    if (patrolPoints.Count == 0)
+    {
+        Debug.Log("Generating patrol points");
+        GeneratePatrol(mostSus.position);
+    }
 
-        if (patrolPoints.Count > 0)
+    if (patrolPoints.Count > 0)
+    {
+        agent.SetDestination(patrolPoints[patrolIndex]);
+        
+        if (Time.frameCount % 60 == 0) // Log every 60 frames
         {
-            agent.SetDestination(patrolPoints[patrolIndex]);
-            
-            if (Time.frameCount % 60 == 0) // Log every 60 frames
-            {
-                Debug.Log($"Patrolling - Point {patrolIndex}/{patrolPoints.Count}, Distance: {agent.remainingDistance:F1}m, Speed: {agent.speed}");
-            }
-            
-            if (!agent.pathPending && agent.remainingDistance < 1f)
-            {
-                patrolIndex = (patrolIndex + 1) % patrolPoints.Count;
-                if (patrolIndex == 0) GeneratePatrol(mostSus.position);
-            }
+            Debug.Log($"Patrolling - Point {patrolIndex}/{patrolPoints.Count}, Distance: {agent.remainingDistance:F1}m, Speed: {agent.speed}");
         }
-        else
+        
+        if (!agent.pathPending && agent.remainingDistance < 1f)
         {
-            Debug.LogWarning("No patrol points generated! Returning to teleporting.");
-            state = EnemyState.Teleporting;
+            patrolIndex = (patrolIndex + 1) % patrolPoints.Count;
+            if (patrolIndex == 0) GeneratePatrol(mostSus.position);
         }
     }
+    else
+    {
+        Debug.LogWarning("No patrol points generated! Returning to teleporting.");
+        state = EnemyState.Teleporting;
+    }
+}
 
     void GeneratePatrol(Vector3 center)
     {
@@ -435,96 +467,144 @@ public class EnemyBase : MonoBehaviourPunCallbacks
     }
 
     // ===== CHASING =====
-    void UpdateChasing()
+void UpdateChasing()
+{
+    agent.isStopped = false;
+    agent.speed = chaseSpeed;
+
+    Transform mostSus = GetMostSuspicious();
+    if (mostSus == null)
     {
-        agent.isStopped = false;
-        agent.speed = chaseSpeed;
+        state = EnemyState.Teleporting;
+        return;
+    }
 
-        Transform mostSus = GetMostSuspicious();
-        if (mostSus == null)
+    agent.SetDestination(mostSus.position);
+
+    float distToPlayer = Vector3.Distance(transform.position, mostSus.position);
+    if (distToPlayer <= attackRange)
+    {
+        if (mostSus == null) return;
+        PlayerController playerController = mostSus.GetComponent<PlayerController>();
+        if (playerController != null && playerController.GetCurrentState() == PlayerState.Alive)
         {
-            state = EnemyState.Teleporting;
-            return;
-        }
-
-        agent.SetDestination(mostSus.position);
-
-        if (GetMaxSuspicion() < suspicionToChase * 0.7f)
-        {
-            state = EnemyState.Patrolling;
-            target = mostSus;
-            GeneratePatrol(mostSus.position);
+            playerController.ChangeState(PlayerState.WaitingRevive);
         }
     }
 
-    // ===== HELPERS =====
-    void DecaySuspicion()
+    if (GetMaxSuspicion() < suspicionToChase * 0.7f)
     {
-        // Don't decay suspicion when actively observing, patrolling, or chasing
+        state = EnemyState.Patrolling;
+        target = mostSus;
+        GeneratePatrol(mostSus.position);
+    }
+}
+
+    // ===== HELPERS =====
+void DecaySuspicion()
+{
+    // Decay suspicion for dead/downed players OR players out of range
+    for (int i = 0; i < suspicionLevels.Length; i++)
+    {
+        if (Players[i] == null)
+        {
+            suspicionLevels[i] = Mathf.Max(0f, suspicionLevels[i] - decayRate * Time.deltaTime);
+            continue;
+        }
+        
+        PlayerController pc = Players[i].GetComponent<PlayerController>();
+        bool isAlive = pc != null && pc.GetCurrentState() == PlayerState.Alive;
+        
+        // If player is dead/downed, decay their suspicion rapidly
+        if (!isAlive)
+        {
+            suspicionLevels[i] = Mathf.Max(0f, suspicionLevels[i] - decayRate * 3f * Time.deltaTime); // 3x faster decay for downed players
+            continue;
+        }
+        
+        // Normal decay logic for alive players
         if (state == EnemyState.Observing || state == EnemyState.Patrolling || state == EnemyState.Chasing)
         {
-            // Only decay if player is out of range or wearing effective mask
-            for (int i = 0; i < suspicionLevels.Length; i++)
+            float distance = Vector3.Distance(transform.position, Players[i].position);
+            bool playerInRange = distance <= observeRange;
+            
+            // Only decay if player is far away
+            if (!playerInRange)
             {
-                if (Players[i] == null) continue;
-                
-                float distance = Vector3.Distance(transform.position, Players[i].position);
-                bool playerInRange = distance <= observeRange;
-                
-                // Only decay if player is far away
-                if (!playerInRange)
-                {
-                    suspicionLevels[i] = Mathf.Max(0f, suspicionLevels[i] - decayRate * Time.deltaTime);
-                }
+                suspicionLevels[i] = Mathf.Max(0f, suspicionLevels[i] - decayRate * Time.deltaTime);
             }
         }
         else if (state == EnemyState.Teleporting)
         {
             // Normal decay when teleporting (not engaged)
-            for (int i = 0; i < suspicionLevels.Length; i++)
-                suspicionLevels[i] = Mathf.Max(0f, suspicionLevels[i] - decayRate * Time.deltaTime);
+            suspicionLevels[i] = Mathf.Max(0f, suspicionLevels[i] - decayRate * Time.deltaTime);
         }
     }
+}
 
-    Transform GetNearestInRange(float range)
+Transform GetNearestInRange(float range)
+{
+    Transform nearest = null;
+    float minDist = range;
+    foreach (Transform p in Players)
     {
-        Transform nearest = null;
-        float minDist = range;
-        foreach (Transform p in Players)
+        if (p == null) continue;
+        
+        // Only consider alive players
+        PlayerController pc = p.GetComponent<PlayerController>();
+        if (pc != null && pc.GetCurrentState() != PlayerState.Alive)
+            continue;
+        
+        float d = Vector3.Distance(transform.position, p.position);
+        if (d < minDist)
         {
-            if (p == null) continue;
-            float d = Vector3.Distance(transform.position, p.position);
-            if (d < minDist)
-            {
-                minDist = d;
-                nearest = p;
-            }
+            minDist = d;
+            nearest = p;
         }
-        return nearest;
     }
+    return nearest;
+}
 
-    Transform GetMostSuspicious()
+Transform GetMostSuspicious()
+{
+    int idx = -1;
+    float max = 0f;
+    for (int i = 0; i < suspicionLevels.Length; i++)
     {
-        int idx = -1;
-        float max = 0f;
-        for (int i = 0; i < suspicionLevels.Length; i++)
+        if (Players[i] == null) continue;
+        
+        PlayerController playerController = Players[i].GetComponent<PlayerController>();
+        if (playerController != null && playerController.GetCurrentState() != PlayerState.Alive)
         {
-            if (suspicionLevels[i] > max)
-            {
-                max = suspicionLevels[i];
-                idx = i;
-            }
+            continue; // Skip downed/dead players
         }
-        return (idx >= 0 && idx < Players.Count) ? Players[idx] : null;
-    }
 
-    float GetMaxSuspicion()
-    {
-        float max = 0f;
-        foreach (float s in suspicionLevels)
-            if (s > max) max = s;
-        return max;
+        if (suspicionLevels[i] > max)
+        {
+            max = suspicionLevels[i];
+            idx = i;
+        }
     }
+    return (idx >= 0 && idx < Players.Count) ? Players[idx] : null;
+}
+
+float GetMaxSuspicion()
+{
+    float max = 0f;
+    for (int i = 0; i < suspicionLevels.Length; i++)
+    {
+        if (Players[i] == null) continue;
+        
+        // Only count suspicion from alive players
+        PlayerController pc = Players[i].GetComponent<PlayerController>();
+        if (pc != null && pc.GetCurrentState() != PlayerState.Alive)
+            continue;
+            
+        if (suspicionLevels[i] > max) 
+            max = suspicionLevels[i];
+    }
+    return max;
+}
 
     public void IncreaseSuspicion(int playerIndex, float amount)
     {
