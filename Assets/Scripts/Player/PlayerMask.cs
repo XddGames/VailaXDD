@@ -2,16 +2,54 @@ using UnityEngine;
 
 public class PlayerMask : MonoBehaviour
 {
-    [Header("Mask State")]
-    public bool HasMaskOn = false;
+    public bool HasMaskOn { get; private set; } = false;
 
-    public void SetMaskState(bool on)
+    [Header("Visuals")]
+    public GameObject maskOverlayUI;
+    
+    [Header("Audio")]
+    public AudioSource audioSource;
+    public AudioClip breathingSound;
+    public AudioClip equipSound;
+
+    [Header("Mechanics")]
+    [Range(0f, 1f)]
+    public float detectionMultiplier = 0.2f;
+
+    void Start()
     {
-        HasMaskOn = on;
+        if (maskOverlayUI != null) 
+            maskOverlayUI.SetActive(false);
+            
+        if (audioSource == null) 
+            audioSource = GetComponent<AudioSource>();
     }
 
-    public float GetMaskEffect()
+    public float GetMaskEffect() => HasMaskOn ? detectionMultiplier : 1.0f;
+    public void SetMaskState(bool isOn)
     {
-        return HasMaskOn ? 0f : 1f;
+        HasMaskOn = isOn;
+        if (maskOverlayUI != null)
+            maskOverlayUI.SetActive(isOn);
+
+        if (isOn)
+        {
+            // Play one-shot equip sound
+            if (equipSound != null) AudioSource.PlayClipAtPoint(equipSound, transform.position);
+            
+            // Start looping breathing
+            if (audioSource != null && breathingSound != null)
+            {
+                audioSource.clip = breathingSound;
+                audioSource.loop = true;
+                audioSource.Play();
+            }
+        }
+        else
+        {
+            // Stop breathing
+            if (audioSource != null) audioSource.Stop();
+        }
     }
+
 }
