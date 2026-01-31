@@ -75,6 +75,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     private float verticalRotation = 0f;
     private bool isGrounded;
     private bool lastInteractState;
+    private bool lastInteractStateForGrave;
     private float lastInteractionTime;
 
     private float currentStamina;
@@ -361,35 +362,33 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     private void HandleGraveyardInteraction()
     {
-        if (!inputHandler.interactInput)
+        UnityEngine.Debug.Log($"[GRAVE] HandleGraveyardInteraction chamado - interactInput: {inputHandler.interactInput}");
+
+        bool pressEdge = inputHandler.interactInput && !lastInteractStateForGrave;
+        lastInteractStateForGrave = inputHandler.interactInput;
+
+        if (!pressEdge)
             return;
+
+        UnityEngine.Debug.Log("[GRAVE] E PRESSIONADO (rising edge)!");
 
         if (currentGraveyardMinigame == null)
         {
             currentGraveyardMinigame = FindAnyObjectByType<GraveyardMinigame>();
-            if (currentGraveyardMinigame != null)
-            {
-                Debug.Log("[PlayerController] Found GraveyardMinigame!");
-            }
-            else
-            {
-                Debug.Log("[PlayerController] GraveyardMinigame not found in scene!");
-            }
+            UnityEngine.Debug.Log($"[GRAVE] Minigame encontrado: {currentGraveyardMinigame != null}");
         }
 
-        if (currentGraveyardMinigame != null)
+        if (currentGraveyardMinigame != null && currentGraveyardMinigame.IsMinigameActive())
         {
-            Debug.Log($"[PlayerController] Minigame active: {currentGraveyardMinigame.IsMinigameActive()}");
+            UnityEngine.Debug.Log($"[GRAVE] Procurando gravestone na posição: {transform.position}");
+            Gravestone nearbyGravestone = currentGraveyardMinigame.FindGravestoneInRange(transform.position);
             
-            if (currentGraveyardMinigame.IsMinigameActive())
+            UnityEngine.Debug.Log($"[GRAVE] Gravestone encontrada: {nearbyGravestone != null}");
+            
+            if (nearbyGravestone != null)
             {
-                Gravestone nearbyGravestone = currentGraveyardMinigame.FindGravestoneInRange(transform.position);
-                
-                if (nearbyGravestone != null && !lastInteractState)
-                {
-                    Debug.Log($"[PlayerController] Clicking gravestone: {nearbyGravestone.DeceasedName}");
-                    nearbyGravestone.OnClicked(this);
-                }
+                UnityEngine.Debug.Log($"[GRAVE] CLICANDO NA GRAVESTONE: {nearbyGravestone.DeceasedName}");
+                nearbyGravestone.OnClicked(this);
             }
         }
     }

@@ -50,19 +50,45 @@ public class Gravestone : MonoBehaviourPunCallbacks
 
     public void OnClicked(PlayerController player)
     {
-        Debug.Log($"[Gravestone] {deceasedName} OnClicked - Clickable: {isClickable}, Manager: {minigameManager != null}");
+        Debug.Log($"[GRAVE] OnClicked chamado para {deceasedName}");
+        Debug.Log($"[GRAVE] isClickable: {isClickable}, minigameManager: {minigameManager != null}");
         
         if (!isClickable || minigameManager == null)
+        {
+            Debug.Log($"[GRAVE] Clique ignorado! isClickable={isClickable}, manager={minigameManager != null}");
             return;
+        }
 
         if (PhotonNetwork.IsConnected)
         {
-            Debug.Log($"[Gravestone] {deceasedName} - Sending RPC");
-            photonView.RPC(nameof(RPC_ProcessClick), RpcTarget.AllBuffered, player.photonView.ViewID);
+            int playerViewID = -1;
+            if (player != null && player.photonView != null)
+            {
+                playerViewID = player.photonView.ViewID;
+            }
+
+            if (photonView != null)
+            {
+                Debug.Log($"[GRAVE] Photon conectado, enviando RPC para {deceasedName} (playerViewID={playerViewID})");
+                try
+                {
+                    photonView.RPC(nameof(RPC_ProcessClick), RpcTarget.AllBuffered, playerViewID);
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogWarning($"[GRAVE] RPC falhou, a processar localmente: {ex.Message}");
+                    ProcessClick();
+                }
+            }
+            else
+            {
+                Debug.LogWarning("[GRAVE] Gravestone sem PhotonView, processando clique localmente");
+                ProcessClick();
+            }
         }
         else
         {
-            Debug.Log($"[Gravestone] {deceasedName} - Processing click locally");
+            Debug.Log($"[GRAVE] Modo offline, processando clique diretamente para {deceasedName}");
             ProcessClick();
         }
     }
@@ -75,16 +101,38 @@ public class Gravestone : MonoBehaviourPunCallbacks
 
     private void ProcessClick()
     {
-        minigameManager.OnGravestoneClicked(this);
+        Debug.Log($"[GRAVE] ProcessClick chamado para {deceasedName}");
+        Debug.Log($"[GRAVE] Manager é null? {minigameManager == null}");
+        if (minigameManager != null)
+        {
+            Debug.Log($"[GRAVE] Chamando OnGravestoneClicked no manager");
+            minigameManager.OnGravestoneClicked(this);
+        }
     }
 
     public void SetGlowState(bool glow)
     {
-        if (PhotonNetwork.IsConnected && photonView.IsMine)
+        if (PhotonNetwork.IsConnected)
         {
-            photonView.RPC(nameof(RPC_SetGlow), RpcTarget.AllBuffered, glow);
+            if (photonView != null)
+            {
+                try
+                {
+                    photonView.RPC(nameof(RPC_SetGlow), RpcTarget.AllBuffered, glow);
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogWarning($"[GRAVE] SetGlowState RPC falhou: {ex.Message}. Aplicando localmente.");
+                    ApplyGlow(glow);
+                }
+            }
+            else
+            {
+                Debug.LogWarning("[GRAVE] SetGlowState: photonView é null, aplicando glow localmente");
+                ApplyGlow(glow);
+            }
         }
-        else if (!PhotonNetwork.IsConnected)
+        else
         {
             ApplyGlow(glow);
         }
@@ -134,11 +182,27 @@ public class Gravestone : MonoBehaviourPunCallbacks
 
     public void ResetGravestone()
     {
-        if (PhotonNetwork.IsConnected && photonView.IsMine)
+        if (PhotonNetwork.IsConnected)
         {
-            photonView.RPC(nameof(RPC_Reset), RpcTarget.AllBuffered);
+            if (photonView != null)
+            {
+                try
+                {
+                    photonView.RPC(nameof(RPC_Reset), RpcTarget.AllBuffered);
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogWarning($"[GRAVE] RPC_Reset falhou: {ex.Message}. Aplicando reset localmente.");
+                    Reset();
+                }
+            }
+            else
+            {
+                Debug.LogWarning("[GRAVE] ResetGravestone: photonView é null, aplicando reset localmente");
+                Reset();
+            }
         }
-        else if (!PhotonNetwork.IsConnected)
+        else
         {
             Reset();
         }
