@@ -255,7 +255,6 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         Transform nearest = GetNearestInRange(observeRange);
         if (nearest != null)
         {
-            Debug.Log($"Player detected at {Vector3.Distance(transform.position, nearest.position):F1}m - switching to Observing");
             state = EnemyState.Observing;
             target = nearest;
             return;
