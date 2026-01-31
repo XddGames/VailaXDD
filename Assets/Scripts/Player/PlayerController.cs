@@ -446,17 +446,20 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             collider.enabled = false;
         }
         
-        // Enable spectator camera
-        if (spectatorCamera != null)
+        // Only enable spectator camera for the LOCAL player who died
+        if (photonView.IsMine)
         {
-            spectatorCamera.StartSpectating();
-        }
-        else if (photonView.IsMine)
-        {
-            Debug.LogWarning("No SpectatorCamera component found! Add SpectatorCamera to player prefab.");
+            if (spectatorCamera != null)
+            {
+                spectatorCamera.StartSpectating();
+            }
+            else
+            {
+                Debug.LogWarning("No SpectatorCamera component found! Add SpectatorCamera to player prefab.");
+            }
         }
         
-        Debug.Log($"<color=blue>Player {gameObject.name} entered spectator mode - body hidden and colliders disabled</color>");
+        Debug.Log($"<color=blue>Player {gameObject.name} entered spectator mode - body hidden and colliders disabled (IsMine: {photonView.IsMine})</color>");
     }
 
     public float GetReviveProgress()
