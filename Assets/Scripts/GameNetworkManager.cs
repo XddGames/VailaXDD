@@ -102,10 +102,12 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
             int spawnIndex = (PhotonNetwork.LocalPlayer.ActorNumber - 1) % spawnPoints.Length;
             return spawnPoints[spawnIndex].position;
         }
-
-        // Fallback: Random spawn in a circle
-        Vector2 randomCircle = Random.insideUnitCircle * spawnRadius;
-        return new Vector3(randomCircle.x, 1f, randomCircle.y);
+        else
+        {
+            // Fallback: Random spawn in a circle
+            Vector2 randomCircle = Random.insideUnitCircle * spawnRadius;
+            return new Vector3(randomCircle.x, 1f, randomCircle.y);
+        }
     }
 
     public override void OnLeftRoom()
