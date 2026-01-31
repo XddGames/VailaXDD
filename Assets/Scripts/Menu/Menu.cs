@@ -567,7 +567,7 @@ public class Menu : MonoBehaviourPunCallbacks
         player2Name.text = players.Length >= 2 ? players[1].NickName : "Waiting...";
 
         // Only the Master Client (host) can start, and only if room is full.
-        bool canStart = PhotonNetwork.IsMasterClient && players.Length == 2;
+        bool canStart = PhotonNetwork.IsMasterClient && players.Length >= 1;
 
         if (startButton != null)
         {
