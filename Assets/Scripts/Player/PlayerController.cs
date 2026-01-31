@@ -28,6 +28,12 @@ public class PlayerController : MonoBehaviourPunCallbacks
     [SerializeField] private float airControlPercent = 1f;
     [SerializeField] private LayerMask groundMask;
 
+    [Header("Stamina Settings")]
+    [SerializeField] private float maxStamina = 100f;
+    [SerializeField] private float staminaDrainRate = 20f;
+    [SerializeField] private float staminaRegenRate = 15f;
+    [SerializeField] private float staminaRegenDelay = 1f;
+
     [Header("Camera Settings")]
     [SerializeField] private float mouseSensitivity = 0.2f;
     [SerializeField] private float maxLookAngle = 80f;
@@ -43,6 +49,9 @@ public class PlayerController : MonoBehaviourPunCallbacks
     private bool isGrounded;
     private bool lastInteractState;
     private float lastInteractionTime;
+    
+    private float currentStamina;
+    private float lastSprintTime;
     private PlayerState currentState;
 
      public PlayerState GetCurrentState()
@@ -54,6 +63,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
         currentState = PlayerState.Alive;
         characterController = GetComponent<CharacterController>();
         playerMask = GetComponent<PlayerMask>();
+        currentStamina = maxStamina;
     }
 
     private void Start()
@@ -111,6 +121,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
                 HandleJump();
                 HandleInteraction();
                 HandleCameraRotation();
+                HandleStamina();
                 break;
             case PlayerState.WaitingRevive:
                 HandleCameraRotation();
@@ -128,6 +139,7 @@ public class PlayerController : MonoBehaviourPunCallbacks
         PlayerState tempState = currentState;
         currentState = newState;
         return tempState;
+        
     }
 
     private void HandleGroundCheck()
@@ -172,13 +184,9 @@ public class PlayerController : MonoBehaviourPunCallbacks
         Vector3 targetVelocity = moveDirection * currentSpeed;
 
         if (isGrounded)
-        {
-            // Debug - remove later
-            Debug.Log($"Input: {input} | InputMag: {input.sqrMagnitude:F4} | Threshold: {INPUT_THRESHOLD * INPUT_THRESHOLD:F4} | Applying Friction: {input.sqrMagnitude < INPUT_THRESHOLD * INPUT_THRESHOLD}");
-
+        {            
             if (input.sqrMagnitude < INPUT_THRESHOLD * INPUT_THRESHOLD)
             {
-                // Apply friction by reducing velocity exponentially
                 float frictionFactor = Mathf.Max(0f, 1f - groundFriction * Time.deltaTime);
                 horizontalVelocity *= frictionFactor;
 
@@ -218,11 +226,43 @@ public class PlayerController : MonoBehaviourPunCallbacks
 
     private float CalculateSpeed()
     {
-        if (inputHandler.sprintInput && inputHandler.movementInput.sqrMagnitude > INPUT_THRESHOLD * INPUT_THRESHOLD)
+        if (inputHandler.sprintInput && inputHandler.movementInput.sqrMagnitude > INPUT_THRESHOLD * INPUT_THRESHOLD && currentStamina > 0f)
         {
             return sprintSpeed;
         }
         return walkSpeed;
+    }
+
+    private void HandleStamina()
+    {
+        bool isSprinting = inputHandler.sprintInput && inputHandler.movementInput.sqrMagnitude > INPUT_THRESHOLD * INPUT_THRESHOLD && currentStamina > 0f;
+
+        if (isSprinting && isGrounded)
+        {
+            currentStamina -= staminaDrainRate * Time.deltaTime;
+            currentStamina = Mathf.Max(0f, currentStamina);
+            lastSprintTime = Time.time;
+        }
+        else if (Time.time >= lastSprintTime + staminaRegenDelay)
+        {
+            currentStamina += staminaRegenRate * Time.deltaTime;
+            currentStamina = Mathf.Min(maxStamina, currentStamina);
+        }
+    }
+
+    public float GetCurrentStamina()
+    {
+        return currentStamina;
+    }
+
+    public float GetMaxStamina()
+    {
+        return maxStamina;
+    }
+
+    public float GetStaminaPercentage()
+    {
+        return currentStamina / maxStamina;
     }
 
     private void HandleJump()
