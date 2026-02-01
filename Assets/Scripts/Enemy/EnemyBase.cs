@@ -249,6 +249,19 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         if (animator != null)
         {
             animator.SetFloat(speedHash, currentAgentSpeed);
+
+            // Debug: log animator controller name and current state occasionally
+            if (showDebug && Time.frameCount % 120 == 0)
+            {
+                var rac = animator.runtimeAnimatorController != null ? animator.runtimeAnimatorController.name : "null";
+                var stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+                float reportedSpeed = animator.GetFloat(speedHash);
+                Debug.Log($"[Enemy Debug] Animator: {rac}, SpeedParam: {reportedSpeed:F2}, StateHash: {stateInfo.shortNameHash}, NormTime: {stateInfo.normalizedTime:F2}");
+            }
+        }
+        else if (showDebug && Time.frameCount % 120 == 0)
+        {
+            Debug.Log($"[Enemy Debug] Animator is null on enemy {name}");
         }
     }
 
