@@ -1,6 +1,5 @@
 using UnityEngine;
 using Photon.Pun;
-using System.Diagnostics;
 using System.Collections.Generic;
 public enum PlayerState
 {
@@ -402,6 +401,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         
         if (Input.GetKeyDown(KeyCode.G)) // mask
         {
+            Debug.Log("G KEY PRESSED!");
             ToggleMask();
         }
 
@@ -1154,8 +1154,19 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     private void ToggleMask()
     {
-        if (!photonView.IsMine) return;
-        if (playerMask == null) return;
+        Debug.Log($"ToggleMask called! IsMine: {photonView.IsMine}, playerMask null: {playerMask == null}");
+        
+        if (!photonView.IsMine) 
+        {
+            Debug.LogWarning("ToggleMask: Not mine, returning");
+            return;
+        }
+        
+        if (playerMask == null) 
+        {
+            Debug.LogError("ToggleMask: playerMask is NULL!");
+            return;
+        }
 
         bool newState = !playerMask.HasMaskOn;
         playerMask.SetMaskState(newState);
