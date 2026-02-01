@@ -1,6 +1,8 @@
 using UnityEngine;
 using Photon.Pun;
 using System.Diagnostics;
+using System.Collections.Generic;
+
 public enum PlayerState
 {
     Alive,
@@ -71,6 +73,9 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     [SerializeField] private LayerMask gravestoneLayerMask;
     private GraveyardMinigame currentGraveyardMinigame;
 
+    [Header("Paper Settings")]
+    [SerializeField] private LayerMask paperLayerMask; // Set this to a new Layer "Paper"
+
     private const float GROUND_STICK_FORCE = -2f;
     private const float INPUT_THRESHOLD = 0.1f;
     private const float JUMP_GRAVITY_MULTIPLIER = 1.5f;
@@ -94,6 +99,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     private bool speedToggleActive = false;
     private float savedWalkSpeed;
     private float savedSprintSpeed;
+    private List<int> papersPickedUp;
     [SerializeField] private float toggleSpeed = 25f; // speed used when toggled on
     
     // Animation state tracking
@@ -123,6 +129,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     private void Start()
     {
+        papersPickedUp = new List<int>();
         // Setup for both local and remote players
         if (photonView.IsMine && PhotonNetwork.IsConnected)
         {
@@ -195,6 +202,29 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             }
         }
     }
+
+    private void HandlePaperInteraction()
+    {
+        Collider[] hits = Physics.OverlapSphere(transform.position, interactRange, paperLayerMask);
+            
+        foreach (Collider hit in hits)
+        {
+            PagePickup paper = hit.GetComponent<PagePickup>();
+            if (paper != null)
+            {
+                UnityEngine.Debug.Log($"Picked up Paper ID: {paper.pieceID}");
+                papersPickedUp.Add(paper.pieceID); 
+                UnityEngine.Debug.Log(papersPickedUp);
+                paper.OnPickedUp();
+                return; 
+            }
+        }
+        
+        // Note: lastInteractState is updated in HandleInteraction(), 
+        // so ensure HandleInteraction() is called AFTER this method in Update(),
+        // OR manage the state update carefully if they share the same key.
+    }
+
     private void HandleRemotePlayerPhysics()
     {
         if (characterController == null || !characterController.enabled) return;
@@ -248,6 +278,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 HandleStamina();
                 HandleRevive();
                 HandleGenerator();
+                HandlePaperInteraction();
                 HandleGraveyardInteraction();
                 HandleEmoteInput();
                 break;
@@ -938,10 +969,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             sprintSpeed = savedSprintSpeed;
         }
     }
-
-
-
-
 
     private void OnGUI()
     {
