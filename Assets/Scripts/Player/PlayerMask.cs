@@ -1,4 +1,5 @@
     using UnityEngine;
+    using Photon.Pun;
 
     public class PlayerMask : MonoBehaviour
     {
@@ -6,6 +7,7 @@
 
         [Header("Visuals")]
         public GameObject maskOverlayUI;
+        public GameObject physicalMask; // 3D mask model that other players see
 
         [Header("Audio")]
         public AudioSource audioSource;
@@ -22,6 +24,23 @@
             {
                 maskOverlayUI.SetActive(false);
             }
+            
+            if (physicalMask != null)
+            {
+                physicalMask.SetActive(false);
+                
+                // Hide physical mask renderers for local player so it doesn't block their vision
+                PhotonView photonView = GetComponent<PhotonView>();
+                if (photonView != null && photonView.IsMine)
+                {
+                    Renderer[] renderers = physicalMask.GetComponentsInChildren<Renderer>();
+                    foreach (Renderer renderer in renderers)
+                    {
+                        renderer.enabled = false;
+                    }
+                    Debug.Log("Disabled physical mask renderers for local player");
+                }
+            }
 
             if (audioSource == null)
                 audioSource = GetComponent<AudioSource>();
@@ -37,6 +56,12 @@
             {
                 maskOverlayUI.SetActive(isOn);
                 Debug.Log($"MASK HAS MASKED TO {isOn}");
+            }
+            
+            // Show/hide physical 3D mask
+            if (physicalMask != null)
+            {
+                physicalMask.SetActive(isOn);
             }
 
             if (isOn)
