@@ -6,6 +6,20 @@ public class PagePickup : MonoBehaviourPun
     [Tooltip("1 = Top, 2 = Mid, 3 = Bottom")]
     public int pieceID; 
 
+    public void OnPickedUp(PlayerController player)
+    {
+        player.CollectPage(pieceID);
+
+        if (PhotonNetwork.IsConnected && photonView != null && photonView.IsMine)
+        {
+            PhotonNetwork.Destroy(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+
     // Public method called by PlayerController
     public void OnPickedUp()
     {

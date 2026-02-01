@@ -70,21 +70,37 @@ public class FrustumCullingManager : MonoBehaviour
         {
             if (pv.IsMine)
             {
-                Camera cam = pv.GetComponentInChildren<Camera>();
-                if (cam != null)
+                // Find an ENABLED camera (could be player cam or spectator cam)
+                Camera[] cams = pv.GetComponentsInChildren<Camera>();
+                foreach (Camera cam in cams)
                 {
-                    cullingCamera = cam;
-                    Debug.Log($"[Culling] Linked to Local Player Camera: {cam.name}");
-                    return;
+                    if (cam.enabled)
+                    {
+                        cullingCamera = cam;
+                        Debug.Log($"[Culling] Linked to Local Player Camera: {cam.name}");
+                        return;
+                    }
                 }
             }
         }
 
-        // 2. Fallback to MainCamera
-        if (Camera.main != null)
+        // 2. Fallback to MainCamera (if it's enabled)
+        if (Camera.main != null && Camera.main.enabled)
         {
             cullingCamera = Camera.main;
             return;
+        }
+        
+        // 3. Find any enabled camera
+        Camera[] allCameras = FindObjectsByType<Camera>(FindObjectsSortMode.None);
+        foreach (Camera cam in allCameras)
+        {
+            if (cam.enabled)
+            {
+                cullingCamera = cam;
+                Debug.Log($"[Culling] Fallback to enabled camera: {cam.name}");
+                return;
+            }
         }
 
         Debug.LogError("[Culling] CRITICAL: No Camera found!");
@@ -105,10 +121,12 @@ public class FrustumCullingManager : MonoBehaviour
             // 1. Skip ignored layers
             if (((1 << go.layer) & searchLayers) == 0) continue;
             
-            // 2. Skip ignored tags
+            // 2. Skip ignored tags (with safe check for undefined tags)
             bool isIgnored = false;
             foreach (string tag in ignoreTags) {
-                if (go.CompareTag(tag)) { isIgnored = true; break; }
+                try {
+                    if (go.CompareTag(tag)) { isIgnored = true; break; }
+                } catch { } // Tag doesn't exist, skip it
             }
             if (isIgnored) continue;
 
@@ -142,10 +160,11 @@ public class FrustumCullingManager : MonoBehaviour
 
     private void Update()
     {
-        if (cullingCamera == null)
+        // Check if camera is null or disabled - find a new one
+        if (cullingCamera == null || !cullingCamera.enabled)
         {
             if (autoFindPlayerCamera) FindLocalCamera();
-            return;
+            if (cullingCamera == null) return;
         }
 
         // 1. Cache Camera Data ONCE per frame

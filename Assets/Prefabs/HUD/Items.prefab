@@ -18,7 +18,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &8927338413847943364
 RectTransform:
   m_ObjectHideFlags: 0
@@ -168,6 +168,7 @@ GameObject:
   - component: {fileID: 2509011765321533161}
   - component: {fileID: 1511805383271058124}
   - component: {fileID: 6629085639279970460}
+  - component: {fileID: 330585616968743273}
   m_Layer: 5
   m_Name: Items
   m_TagString: Untagged
@@ -258,6 +259,23 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
+--- !u!114 &330585616968743273
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2069560530589266163}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47f33bc277441c34aa611a8cee032f8f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  diaryBookVisuals: {fileID: 8524471727661602480}
+  pageImages:
+  - {fileID: 5642687457859558893}
+  - {fileID: 232697791348559653}
+  - {fileID: 2937637773519907698}
 --- !u!1 &2937637773519907698
 GameObject:
   m_ObjectHideFlags: 0
@@ -276,7 +294,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &5096250530465360961
 RectTransform:
   m_ObjectHideFlags: 0
@@ -367,7 +385,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1626467267050690864
 RectTransform:
   m_ObjectHideFlags: 0
@@ -458,7 +476,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &832674238265888971
 RectTransform:
   m_ObjectHideFlags: 0
