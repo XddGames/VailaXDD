@@ -52,6 +52,10 @@ MonoBehaviour:
   - RPC_SetGlow
   - RPC_SyncFlashlight
   - RPC_SyncEquipped
+  - RPC_CompleteMinigame
+  - RPC_CorrectGravestoneClicked
+  - RPC_ResetMinigame
+  - RPC_WrongGravestoneClicked
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 0

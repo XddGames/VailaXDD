@@ -5,6 +5,11 @@ ModelImporter:
   internalIDToNameTable: []
   externalObjects:
   - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: sclep.001
+    second: {fileID: 2100000, guid: a066fcd837931de439e6070fe0163a68, type: 2}
+  - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
       name: sclep_low_TT_checker_2048x2048_UV_GRID_Bas

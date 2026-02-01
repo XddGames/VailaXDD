@@ -18,7 +18,7 @@ public class FlashlightController : MonoBehaviourPun
 
     void Update()
     {
-        if (!photonView.IsMine) return;
+        if (photonView != null && !photonView.IsMine) return;
 
         // F toggles flashlight (only if equipped)
         if (isEquipped && Input.GetKeyDown(KeyCode.F))
@@ -43,14 +43,14 @@ public class FlashlightController : MonoBehaviourPun
             flashlightLight.enabled = false;
             
             // Sync with other players
-            if (photonView.IsMine)
+            if (photonView != null && photonView.IsMine)
             {
                 photonView.RPC(nameof(RPC_SyncFlashlight), RpcTarget.Others, false);
             }
         }
 
         // Sync equipped state with other players
-        if (photonView.IsMine)
+        if (photonView != null && photonView.IsMine)
         {
             photonView.RPC(nameof(RPC_SyncEquipped), RpcTarget.Others, equipped);
         }
@@ -63,7 +63,10 @@ public class FlashlightController : MonoBehaviourPun
         bool newState = !flashlightLight.enabled;
         
         ApplyFlashlightState(newState);
-        photonView.RPC(nameof(RPC_SyncFlashlight), RpcTarget.Others, newState);
+        if (photonView != null)
+        {
+            photonView.RPC(nameof(RPC_SyncFlashlight), RpcTarget.Others, newState);
+        }
     }
 
     [PunRPC]
