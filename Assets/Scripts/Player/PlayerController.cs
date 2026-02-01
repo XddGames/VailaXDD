@@ -69,6 +69,11 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     [Header("Camera Settings")]
     [SerializeField] private float mouseSensitivity = 0.2f;
     [SerializeField] private float maxLookAngle = 80f;
+
+    [Header("Walking Audio")]
+    [SerializeField] private AudioClip walkingSound;
+    [SerializeField] [Range(0f, 1f)] private float walkingVolume = 0.5f;
+    private AudioSource walkingAudioSource;
     
     [Header("Death Camera Settings")]
     [SerializeField] private Transform headBone; // Assign the head bone from the rig
@@ -147,6 +152,13 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         {
             playerAnimator = GetComponent<Animator>();
         }
+        
+        // Setup walking audio source
+        walkingAudioSource = gameObject.AddComponent<AudioSource>();
+        walkingAudioSource.loop = true;
+        walkingAudioSource.playOnAwake = false;
+        walkingAudioSource.volume = walkingVolume;
+        walkingAudioSource.spatialBlend = 0f; // 2D sound for local player
     }
 
     private void Start()
@@ -587,6 +599,30 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         playerAnimator.SetBool(AnimIsDead, isDead);
         playerAnimator.SetBool(AnimIsReviving, deathAnimationPlayed);
         playerAnimator.SetInteger(AnimEmote, currentEmote);
+        
+        // Handle walking audio
+        UpdateWalkingAudio(isMoving && isGrounded && !isDead);
+    }
+
+    private void UpdateWalkingAudio(bool shouldPlay)
+    {
+        if (walkingAudioSource == null || walkingSound == null) return;
+        
+        if (shouldPlay)
+        {
+            if (!walkingAudioSource.isPlaying)
+            {
+                walkingAudioSource.clip = walkingSound;
+                walkingAudioSource.Play();
+            }
+        }
+        else
+        {
+            if (walkingAudioSource.isPlaying)
+            {
+                walkingAudioSource.Stop();
+            }
+        }
     }
 
     private void HandleRevive()
