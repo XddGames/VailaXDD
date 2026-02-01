@@ -283,6 +283,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     private void HandleGenerator()
     {
+        // UnityEngine.Debug.Log($"currentGenerator={currentGenerator != null}");
         if (playerBeingRevived != null) return;
 
         if (!inputHandler.interactInput)
