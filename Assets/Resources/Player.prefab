@@ -363,6 +363,71 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!1 &4804108340025511285
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5578252795947817188}
+  - component: {fileID: 4308262517085287918}
+  m_Layer: 6
+  m_Name: WhisperManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5578252795947817188
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4804108340025511285}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4790645531572269133}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4308262517085287918
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4804108340025511285}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d9370225a2ca94276b870d5f87b0db55, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  logLevel: 1
+  modelPath: ggml-small-q5_1.bin
+  isModelPathInStreamingAssets: 1
+  initOnAwake: 1
+  useGpu: 1
+  flashAttention: 0
+  language: en
+  translateToEnglish: 0
+  strategy: 0
+  noContext: 1
+  singleSegment: 0
+  enableTokens: 0
+  initialPrompt: 
+  stepSec: 3
+  keepSec: 0.2
+  lengthSec: 10
+  updatePrompt: 1
+  dropOldBuffer: 0
+  useVad: 1
+  tokensTimestamps: 0
+  audioCtx: 0
 --- !u!1 &5334164698657126207
 GameObject:
   m_ObjectHideFlags: 0
@@ -1088,6 +1153,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: 76ef50a52d552aa42b91c68c1bf4acf1, type: 3}
       insertIndex: 1
       addedObject: {fileID: 7630226913780697728}
+    - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: 76ef50a52d552aa42b91c68c1bf4acf1, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5578252795947817188}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 76ef50a52d552aa42b91c68c1bf4acf1, type: 3}
       insertIndex: -1
@@ -1113,6 +1181,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 76ef50a52d552aa42b91c68c1bf4acf1, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3430630948016197668}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 76ef50a52d552aa42b91c68c1bf4acf1, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 779034414421517241}
   m_SourcePrefab: {fileID: 100100000, guid: 76ef50a52d552aa42b91c68c1bf4acf1, type: 3}
 --- !u!4 &4790645531572269133 stripped
 Transform:
@@ -1326,6 +1397,19 @@ MonoBehaviour:
   flashlightIcon: {fileID: 21300000, guid: ea6ad690234e46317b9e80289d6d5398, type: 3}
   flashlightPrefab: {fileID: 8530567939078740915, guid: 3341b5b239172694980b61379009f199, type: 3}
   flashlightController: {fileID: 0}
+--- !u!114 &779034414421517241
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5273743846392277751}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3851ee6d3951ef945965d31023005845, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  whisper: {fileID: 4308262517085287918}
 --- !u!1001 &6804901715734193616
 PrefabInstance:
   m_ObjectHideFlags: 0
