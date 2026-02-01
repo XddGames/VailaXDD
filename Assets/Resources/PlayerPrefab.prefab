@@ -269,6 +269,8 @@ MonoBehaviour:
   gravestoneLayerMask:
     serializedVersion: 2
     m_Bits: 256
+  diaryUI: {fileID: 0}
+  collectedPageIDs: 
   paperLayerMask:
     serializedVersion: 2
     m_Bits: 0

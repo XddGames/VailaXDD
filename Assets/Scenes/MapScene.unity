@@ -238426,6 +238426,7 @@ GameObject:
   - component: {fileID: 1059219312}
   - component: {fileID: 1059219311}
   - component: {fileID: 1059219314}
+  - component: {fileID: 1059219315}
   m_Layer: 13
   m_Name: page_house
   m_TagString: Untagged
@@ -238468,6 +238469,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   pieceID: 1
+  pageSprite: {fileID: 21300000, guid: 3216a63f781ae1148aa09d7e66e9b751, type: 3}
 --- !u!4 &1059219313
 Transform:
   m_ObjectHideFlags: 0
@@ -238505,6 +238507,19 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 0.5
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1059219315
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1059219310}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 025a1e5038867a24ba881f55116df2bb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  displayImage: {fileID: 0}
 --- !u!1 &1059490497
 GameObject:
   m_ObjectHideFlags: 0
@@ -274173,6 +274188,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   pieceID: 2
+  pageSprite: {fileID: 21300000, guid: b83cad4c1395fee4da232c2ef75ffab6, type: 3}
 --- !u!4 &1208509194
 Transform:
   m_ObjectHideFlags: 0

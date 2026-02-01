@@ -1,5 +1,6 @@
 using UnityEngine;
 using TMPro;
+using Photon.Pun;
 
 public class Timer : MonoBehaviour
 {
@@ -8,9 +9,20 @@ public class Timer : MonoBehaviour
     private bool timeStarted = false;
 
     [SerializeField] private TextMeshProUGUI timerText;
+    
+    private PhotonView photonView;
 
     void Start()
     {
+        photonView = GetComponentInParent<PhotonView>();
+        
+        // Only local player should control the timer display
+        if (photonView != null && !photonView.IsMine) 
+        {
+            enabled = false;
+            return;
+        }
+        
         // Automatically find the TMP component if you tagged the UI object "TIMER"
         if (timerText == null)
         {
