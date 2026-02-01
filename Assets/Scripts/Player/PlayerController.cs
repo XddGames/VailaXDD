@@ -460,25 +460,21 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         // 1. DEATH - Highest priority
         if (isDead)
         {
-            AnimatorStateInfo stateInfo = playerAnimator.GetCurrentAnimatorStateInfo(0);
-            
-            // Check if dying animation finished
+            // Animation was started in RPC_KillPlayer
+            // Just check if it finished and freeze
             if (!deathAnimationPlayed)
             {
-                if (stateInfo.shortNameHash == StateDying && stateInfo.normalizedTime >= 0.95f)
+                AnimatorStateInfo stateInfo = playerAnimator.GetCurrentAnimatorStateInfo(0);
+                
+                // Check if dying animation finished (normalizedTime >= 1 means finished)
+                if (stateInfo.normalizedTime >= 0.95f)
                 {
                     // Animation finished - freeze on last frame
                     deathAnimationPlayed = true;
                     playerAnimator.speed = 0f; // Freeze the animator
                 }
-                else if (stateInfo.shortNameHash != StateDying)
-                {
-                    // Not yet playing dying animation, trigger it
-                    targetState = StateDying;
-                }
-                // If already playing and not finished, do nothing (let it play)
             }
-            // If deathAnimationPlayed is true, animator is frozen, do nothing
+            // Don't set targetState - animation is already playing or frozen
         }
         // 2. JUMPING - Use isJumping flag set in HandleJump()
         else if (isJumping)
@@ -793,7 +789,14 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         if (playerAnimator != null)
         {
             playerAnimator.applyRootMotion = false;
+            playerAnimator.speed = 1f; // Ensure speed is normal
+            
+            // Force play the dying animation immediately
+            playerAnimator.Play(StateDying, 0, 0f);
+            lastAnimState = StateDying;
         }
+        
+        deathAnimationPlayed = false; // Reset this so we can detect when animation finishes
     }
     
     private void HandleDeathPhysics()
