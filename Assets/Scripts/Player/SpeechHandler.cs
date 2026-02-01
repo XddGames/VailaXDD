@@ -19,8 +19,8 @@ public class VoiceInput : MonoBehaviour
     {
         _commandMap = new Dictionary<string, Action>
         {
-            { "clanker", IncreaseMySuspicion }, // cheat code, check only for "lanker" (clanker, blanker, flanker)
-            { "open the door", OpenLastDoorEasterEgg },
+            { "lanker", IncreaseMySuspicion }, // cheat code, check only for "lanker" (clanker, blanker, flanker)
+            { "open the door", OpenLastDoor },
         };
 
         _enemy = GameObject.FindAnyObjectByType<EnemyBase>();
@@ -78,7 +78,7 @@ public class VoiceInput : MonoBehaviour
         _enemy.IncreaseSuspicion(playerId, 0.25f);
     }
 
-    void OpenLastDoorEasterEgg()
+    void OpenLastDoor()
     {
 
     }
@@ -95,6 +95,6 @@ public class VoiceInput : MonoBehaviour
                 sb.Append(c);
         }
 
-        return sb.ToString();
+        return sb.ToString().ToLower();
     }
 }
