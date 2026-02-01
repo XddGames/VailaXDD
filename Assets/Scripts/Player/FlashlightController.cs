@@ -81,6 +81,8 @@ public class FlashlightController : MonoBehaviour
     }
 
     public bool IsEquipped() => isEquipped;
+    
+    public bool IsLightOn() => flashlightLight != null && flashlightLight.enabled;
 
     void ToggleFlashlight()
     {

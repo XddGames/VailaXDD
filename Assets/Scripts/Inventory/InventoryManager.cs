@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Photon.Pun;
@@ -139,6 +140,12 @@ public class InventoryManager : MonoBehaviourPun
                 {
                     flashlightController.SetEquipped(true);
                 }
+                // Sync to other players
+                if (photonView != null)
+                {
+                    bool lightOn = flashlightController != null && flashlightController.IsLightOn();
+                    photonView.RPC("RPC_SyncFlashlightEquipped", RpcTarget.Others, true, lightOn);
+                }
                 break;
         }
     }
@@ -161,6 +168,11 @@ public class InventoryManager : MonoBehaviourPun
                 if (flashlightController != null)
                 {
                     flashlightController.SetEquipped(false);
+                }
+                // Sync to other players
+                if (photonView != null)
+                {
+                    photonView.RPC("RPC_SyncFlashlightEquipped", RpcTarget.Others, false, false);
                 }
                 break;
         }
@@ -217,16 +229,50 @@ public class InventoryManager : MonoBehaviourPun
     {
         if (photonView != null && !photonView.IsMine) return;
         
-        // Destroy the world pickup object
+        // Handle the world pickup object across the network
         if (worldFlashlight != null)
         {
-            Destroy(worldFlashlight);
+            PhotonView pickupPV = worldFlashlight.GetComponent<PhotonView>();
+            PickupFlashlight pickupScript = worldFlashlight.GetComponent<PickupFlashlight>();
+            
+            if (pickupPV != null)
+            {
+                // Has PhotonView - use RPC to disable on all clients, then destroy
+                pickupPV.RPC("RPC_PickedUp", RpcTarget.All);
+                
+                // Schedule destruction
+                if (PhotonNetwork.IsMasterClient)
+                {
+                    // Master destroys it after a short delay
+                    StartCoroutine(DestroyPickupDelayed(worldFlashlight, 0.5f));
+                }
+            }
+            else
+            {
+                // No PhotonView - destroy locally and tell others
+                Vector3 pickupPos = worldFlashlight.transform.position;
+                Destroy(worldFlashlight);
+                photonView.RPC("RPC_DestroyPickupByPosition", RpcTarget.Others, pickupPos);
+            }
         }
 
         // Add to inventory
         AddItem(new InventoryItem("Flashlight", flashlightIcon, InventoryItem.ItemType.Flashlight));
 
-        // Spawn flashlight at holdpoint
+        // Spawn flashlight at holdpoint locally
+        SpawnFlashlightAtHoldpoint();
+        
+        // Tell other clients to spawn a flashlight on this player
+        if (photonView != null)
+        {
+            photonView.RPC("RPC_SpawnFlashlightOnPlayer", RpcTarget.Others);
+        }
+
+        Debug.Log("Picked up flashlight!");
+    }
+    
+    private void SpawnFlashlightAtHoldpoint()
+    {
         if (flashlightPrefab != null && holdPoint != null)
         {
             // Destroy old held item if any
@@ -252,8 +298,23 @@ public class InventoryManager : MonoBehaviourPun
             // Start hidden until player equips it (presses 1)
             currentHeldItem.SetActive(false);
         }
-
-        Debug.Log("Picked up flashlight!");
+    }
+    
+    private IEnumerator DestroyPickupDelayed(GameObject pickup, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        if (pickup != null)
+        {
+            PhotonView pv = pickup.GetComponent<PhotonView>();
+            if (pv != null && PhotonNetwork.IsMasterClient)
+            {
+                PhotonNetwork.Destroy(pickup);
+            }
+            else
+            {
+                Destroy(pickup);
+            }
+        }
     }
 
     /// <summary>
@@ -288,6 +349,40 @@ public class InventoryManager : MonoBehaviourPun
         if (flashlightController != null)
         {
             flashlightController.SyncFromNetwork(true, lightOn);
+        }
+    }
+    
+    [PunRPC]
+    void RPC_SpawnFlashlightOnPlayer()
+    {
+        // Another player picked up a flashlight, spawn it on them
+        SpawnFlashlightAtHoldpoint();
+        Debug.Log($"Spawned flashlight on remote player {photonView.Owner.NickName}");
+    }
+    
+    [PunRPC]
+    void RPC_RequestDestroyPickup(int viewID)
+    {
+        // Master client destroys the pickup
+        PhotonView pv = PhotonView.Find(viewID);
+        if (pv != null && PhotonNetwork.IsMasterClient)
+        {
+            PhotonNetwork.Destroy(pv.gameObject);
+        }
+    }
+    
+    [PunRPC]
+    void RPC_DestroyPickupByPosition(Vector3 position)
+    {
+        // Find and destroy pickup near this position
+        PickupFlashlight[] pickups = FindObjectsOfType<PickupFlashlight>();
+        foreach (var pickup in pickups)
+        {
+            if (Vector3.Distance(pickup.transform.position, position) < 0.5f)
+            {
+                Destroy(pickup.gameObject);
+                break;
+            }
         }
     }
 

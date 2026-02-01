@@ -3,7 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using Photon.Pun;
 
-public class PickupFlashlight : MonoBehaviour
+public class PickupFlashlight : MonoBehaviourPun
 {
     [Header("Pickup Settings")]
     [SerializeField] private KeyCode pickupKey = KeyCode.E;
@@ -17,6 +17,7 @@ public class PickupFlashlight : MonoBehaviour
 
     private bool playerInRange = false;
     private InventoryManager nearbyPlayer;
+    private bool isPickedUp = false; // Prevent double pickup
     
     // Runtime generated UI
     private static GameObject promptCanvas;
@@ -24,6 +25,8 @@ public class PickupFlashlight : MonoBehaviour
 
     private void Update()
     {
+        if (isPickedUp) return; // Already picked up, waiting to be destroyed
+        
         // Distance-based detection (more reliable than triggers)
         CheckPlayerDistance();
 
@@ -31,6 +34,7 @@ public class PickupFlashlight : MonoBehaviour
         {
             if (Input.GetKeyDown(pickupKey))
             {
+                isPickedUp = true;
                 HidePrompt();
                 nearbyPlayer.PickupFlashlight(gameObject);
             }
@@ -39,6 +43,8 @@ public class PickupFlashlight : MonoBehaviour
 
     private void CheckPlayerDistance()
     {
+        if (isPickedUp) return;
+        
         // Find all players and check distance
         InventoryManager[] allPlayers = FindObjectsOfType<InventoryManager>();
         
@@ -152,6 +158,18 @@ public class PickupFlashlight : MonoBehaviour
         {
             HidePrompt();
         }
+    }
+    
+    /// <summary>
+    /// Called by RPC to mark this pickup as taken on all clients
+    /// </summary>
+    [PunRPC]
+    public void RPC_PickedUp()
+    {
+        isPickedUp = true;
+        HidePrompt();
+        // Disable visuals and colliders
+        gameObject.SetActive(false);
     }
 
     private void OnDrawGizmosSelected()
