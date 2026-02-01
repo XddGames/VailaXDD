@@ -48,13 +48,25 @@
         {
             HasMaskOn = isOn;
 
+            // Ensure photonView is initialized
+            if (photonView == null)
+            {
+                photonView = GetComponent<PhotonView>();
+            }
+            
             bool isLocalPlayer = photonView != null && photonView.IsMine;
+            
+            Debug.Log($"SetMaskState called: isOn={isOn}, photonView={photonView != null}, IsMine={photonView?.IsMine}, isLocalPlayer={isLocalPlayer}, maskOverlayUI={maskOverlayUI != null}");
             
             // Only show UI overlay for the local player
             if (maskOverlayUI != null)
             {
                 maskOverlayUI.SetActive(isOn && isLocalPlayer);
-                Debug.Log($"MASK HAS MASKED TO {isOn} (UI shown: {isOn && isLocalPlayer}, IsLocal: {isLocalPlayer})");
+                Debug.Log($"MASK UI SET TO: {isOn && isLocalPlayer} (isOn={isOn}, isLocalPlayer={isLocalPlayer})");
+            }
+            else
+            {
+                Debug.LogError("maskOverlayUI is NULL!");
             }
             
             // Handle physical 3D mask - always activate GameObject, but control renderer visibility
