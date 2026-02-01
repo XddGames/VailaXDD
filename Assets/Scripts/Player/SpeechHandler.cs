@@ -14,9 +14,27 @@ public class VoiceInput : MonoBehaviour
     private AudioClip _clip;
     private Dictionary<string, Action> _commandMap;
     EnemyBase _enemy;
+    private PhotonView photonView;
 
     private void Start()
     {
+        // Only run voice recognition on the local player
+        photonView = GetComponentInParent<PhotonView>();
+        if (photonView == null)
+        {
+            photonView = GetComponent<PhotonView>();
+        }
+
+        // If this is not the local player, disable voice input
+        if (photonView != null && !photonView.IsMine)
+        {
+            Debug.Log("[VoiceInput] Not local player - disabling voice recognition");
+            enabled = false;
+            return;
+        }
+
+        Debug.Log("[VoiceInput] Local player - initializing voice recognition");
+
         _commandMap = new Dictionary<string, Action>
         {
             { "lanker", IncreaseMySuspicion }, // cheat code, check only for "lanker" (clanker, blanker, flanker)
