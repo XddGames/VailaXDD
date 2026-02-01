@@ -50,29 +50,19 @@ Até à próxima vez, viajante...";
     [TextArea(10, 30)]
     [SerializeField] private string creditsContent = @"<size=48><b>CRÉDITOS</b></size>
 
+
 <size=36>Desenvolvimento</size>
-[O Teu Nome Aqui]
-
-<size=36>Game Design</size>
-[O Teu Nome Aqui]
-
-<size=36>Programação</size>
-[O Teu Nome Aqui]
-
-<size=36>Arte & Design Visual</size>
-[O Teu Nome Aqui]
-
-<size=36>Música & Som</size>
-[O Teu Nome Aqui]
+Filipe Gonçalves
+Gonçalo Araújo
+Gonçalo Fernandes
+Tiago Miranda
+Gonçalo Sousa
 
 <size=36>Agradecimentos Especiais</size>
-À minha família e amigos
 À comunidade Unity
 A todos os jogadores
 
-
 <size=32><i>Obrigado por jogares!</i></size>
-
 
 <size=24>© 2026 - Todos os direitos reservados</size>";
 
