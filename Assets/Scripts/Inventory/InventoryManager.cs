@@ -27,13 +27,13 @@ public class InventoryManager : MonoBehaviourPun
 
     private void Awake()
     {
+        // Find holdpoint in children - ALWAYS do this for all players (needed for network sync)
+        holdPoint = FindHoldPoint();
+        
         // Only set instance for local player
         if (photonView != null && !photonView.IsMine) return;
         
         Instance = this;
-        
-        // Find holdpoint in children
-        holdPoint = FindHoldPoint();
     }
 
     private Transform FindHoldPoint()
@@ -324,21 +324,9 @@ public class InventoryManager : MonoBehaviourPun
 
     // Network sync RPCs for flashlight
     [PunRPC]
-    void RPC_SyncFlashlightEquipped(bool equipped, bool lightOn)
-    {
-        if (currentHeldItem != null)
-        {
-            currentHeldItem.SetActive(equipped);
-        }
-        if (flashlightController != null)
-        {
-            flashlightController.SyncFromNetwork(equipped, lightOn);
-        }
-    }
-
-    [PunRPC]
     void RPC_SyncFlashlightState(bool lightOn)
     {
+        Debug.Log($"[RPC] RPC_SyncFlashlightState received: lightOn={lightOn}, flashlightController={(flashlightController != null ? "exists" : "NULL")}");
         if (flashlightController != null)
         {
             flashlightController.SyncFromNetwork(true, lightOn);
@@ -348,9 +336,24 @@ public class InventoryManager : MonoBehaviourPun
     [PunRPC]
     void RPC_SpawnFlashlightOnPlayer()
     {
+        Debug.Log($"[RPC] RPC_SpawnFlashlightOnPlayer received, holdPoint={(holdPoint != null ? "exists" : "NULL")}");
         // Another player picked up a flashlight, spawn it on them
         SpawnFlashlightAtHoldpoint();
         Debug.Log($"Spawned flashlight on remote player {photonView.Owner.NickName}");
+    }
+    
+    [PunRPC]
+    void RPC_SyncFlashlightEquipped(bool equipped, bool lightOn)
+    {
+        Debug.Log($"[RPC] RPC_SyncFlashlightEquipped received: equipped={equipped}, lightOn={lightOn}");
+        if (currentHeldItem != null)
+        {
+            currentHeldItem.SetActive(equipped);
+        }
+        if (flashlightController != null)
+        {
+            flashlightController.SyncFromNetwork(equipped, lightOn);
+        }
     }
     
     [PunRPC]
