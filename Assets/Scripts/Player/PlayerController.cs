@@ -744,26 +744,19 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             float lag = Mathf.Abs((float)(PhotonNetwork.Time - info.SentServerTime));
             networkPosition += networkVelocity * lag;
             
-            // Receive and apply animation state for remote players
+            // Receive and apply animation - just mirror exactly what they're playing
             if (playerAnimator != null)
             {
                 int netAnimState = (int)stream.ReceiveNext();
                 float netNormalizedTime = (float)stream.ReceiveNext();
                 float netAnimSpeed = (float)stream.ReceiveNext();
                 
-                // Apply animator speed (for death freeze)
                 playerAnimator.speed = netAnimSpeed;
                 
-                // Play the animation directly with normalized time for perfect sync
+                // Just play exactly what they're playing
                 if (netAnimState != 0)
                 {
-                    AnimatorStateInfo currentStateInfo = playerAnimator.GetCurrentAnimatorStateInfo(0);
-                    
-                    // Only force transition if animation changed
-                    if (currentStateInfo.shortNameHash != netAnimState)
-                    {
-                        playerAnimator.Play(netAnimState, 0, netNormalizedTime);
-                    }
+                    playerAnimator.Play(netAnimState, 0, netNormalizedTime);
                 }
             }
         }
