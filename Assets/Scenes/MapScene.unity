@@ -146415,7 +146415,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gen1: {fileID: 1132270423}
   gen2: {fileID: 715693546}
-  hospitalLightsParent: {fileID: 0}
+  hospitalLightsParent: {fileID: 21825376}
 --- !u!4 &649170097
 Transform:
   m_ObjectHideFlags: 0
@@ -241357,7 +241357,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 025a1e5038867a24ba881f55116df2bb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  displayImage: {fileID: 0}
 --- !u!1 &1059490497
 GameObject:
   m_ObjectHideFlags: 0
