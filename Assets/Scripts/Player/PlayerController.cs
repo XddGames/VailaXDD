@@ -416,6 +416,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 HandleStamina();
                 HandleRevive();
                 HandleGenerator();
+                HandlePaperInteraction();
                 HandleGraveyardInteraction();
                 HandleEmoteInput();
                 break;
