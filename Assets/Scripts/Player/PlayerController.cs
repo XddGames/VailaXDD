@@ -129,7 +129,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     private bool isPlayingEmote = false;
     private int lastAnimState = 0; // Track current animation to avoid redundant CrossFade calls
     private float deathPositionY = 0f; // Store Y position when player dies
-    [SerializeField] private LayerMask paperLayerMask; // Set this to a new Layer "Paper"
     private List<int> papersPickedUp;
 
 
