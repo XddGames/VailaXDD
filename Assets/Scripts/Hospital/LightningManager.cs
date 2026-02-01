@@ -4,7 +4,9 @@ public class LightingManager : MonoBehaviour
 {
     public PowerGenerator gen1;
     public PowerGenerator gen2;
-    public GameObject[] buildingLights; // drag lights here
+
+    [Header("Parent")]
+    public GameObject hospitalLightsParent;
 
     void Start()
     {
@@ -18,10 +20,10 @@ public class LightingManager : MonoBehaviour
     {
         bool powerRestored = gen1.IsOn && gen2.IsOn;
 
-        foreach (GameObject lightObj in buildingLights)
-        {
-            lightObj.SetActive(powerRestored);
-        }
+        if(hospitalLightsParent != null)
+            hospitalLightsParent.SetActive(powerRestored);
+        else
+            Debug.LogError("Dont have lights to update");
 
         if(powerRestored) Debug.Log("BUILDING POWER ONLINE");
         else Debug.Log("POWER OFFLINE");

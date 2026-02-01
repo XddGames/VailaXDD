@@ -1,0 +1,357 @@
+fileFormatVersion: 2
+guid: eba66b2863915f844b9907aac44d2543
+ModelImporter:
+  serializedVersion: 22200
+  internalIDToNameTable: []
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Accesorio_1
+    second: {fileID: 2100000, guid: 7ba4e2c9bd25fee429f8a1851e0367f3, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Armazon_1
+    second: {fileID: 2100000, guid: 970dc0208528be44dbc69dd6ff77f16a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Botones_1
+    second: {fileID: 2100000, guid: 86ae4956043dc7b4a83d22db1e33e183, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Compresor_1
+    second: {fileID: 2100000, guid: c7b4970908310704fba5d66d15341218, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Fierrito_1
+    second: {fileID: 2100000, guid: daf9ce74b4dc6444baf6265d385aad42, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Fierritos_1
+    second: {fileID: 2100000, guid: fa684429c3e9ba04b90251bbf371df69, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Fierros_1
+    second: {fileID: 2100000, guid: 2794fe3a411fc014f9e4d47ae5aba947, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Filtro_1
+    second: {fileID: 2100000, guid: 6b46026481418454082434f0c6c29008, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Indicadores_1
+    second: {fileID: 2100000, guid: 39e4ecc950759a341a7f33e17148f417, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LLave_1
+    second: {fileID: 2100000, guid: 66e39380ee9f5cb49934bcafd07e29a1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Luz_1
+    second: {fileID: 2100000, guid: 77a83a6e6eea9e04794bc7cbea9ee625, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Manilla_1
+    second: {fileID: 2100000, guid: 839e202567e9698489b7313e8ab47ac4, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Motor_1
+    second: {fileID: 2100000, guid: 37c488c3096d29c40992f7b6221986f9, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Panel_001
+    second: {fileID: 2100000, guid: 4dfe0b3dcf2cb3840b8472c9cc690711, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Panel_1
+    second: {fileID: 2100000, guid: 704c9735bd1e34d49be3ac4df063aa06, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Patas1
+    second: {fileID: 2100000, guid: d77de2269e0d66e44a33e51d80849129, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Rotor_1
+    second: {fileID: 2100000, guid: d9dde625d7530bc488d2ded9254f44a2, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Salida_1
+    second: {fileID: 2100000, guid: af518fc6666583342956e9455909439c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Soporte_1
+    second: {fileID: 2100000, guid: 646643ad799b82142b1dbdee8694f341, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Sostenedor_1
+    second: {fileID: 2100000, guid: f68d972040e3af54bafa892a77beb401, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Tanque1
+    second: {fileID: 2100000, guid: 6bd6f3df496660944b45820f86384186, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Tornilos_1
+    second: {fileID: 2100000, guid: 31115c79f17c7484c9cb53aacdaccd49, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Tubos_1
+    second: {fileID: 2100000, guid: cc5fb82e2a2d8fc4c9aacff9ad9dbc47, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Valvula_1
+    second: {fileID: 2100000, guid: b861717ca4e788845b68a21308370a76, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: tubo_clabe_1
+    second: {fileID: 2100000, guid: 8b3f8ed1ce90088408d131436e2f1cdd, type: 2}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Generador_Modif._Accesorio_1_BaseColor
+    second: {fileID: 2800000, guid: 2737498944a7f20439641e555f92609e, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Generador_Modif._Armazon_1_BaseColor
+    second: {fileID: 2800000, guid: a359801578450a640a2268387439a888, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Generador_Modif._Botones_1_BaseColor
+    second: {fileID: 2800000, guid: d8a99b33adb4f15459c0d7a7cf25fa91, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Generador_Modif._Compresor_1_BaseColor
+    second: {fileID: 2800000, guid: 5c90ac1fef58eda4a88b908d85f15725, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Generador_Modif._Fierrito_1_BaseColor
+    second: {fileID: 2800000, guid: 9415224dab7f41f4da001ebe4ff6bee0, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Generador_Modif._Fierritos_1_BaseColor
+    second: {fileID: 2800000, guid: db581388748747c4893bbc8d7104fcaa, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Generador_Modif._Fierros_1_BaseColor
+    second: {fileID: 2800000, guid: c4159a5c0d2e7d04bb7217cb197b464f, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Generador_Modif._Filtro_1_BaseColor
+    second: {fileID: 2800000, guid: 435450975fad1214c8fd1ae33b9e6a7a, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Generador_Modif._Indicadores_1_BaseColor
+    second: {fileID: 2800000, guid: 181bf86b8807621479ea7a015bd6c987, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Generador_Modif._LLave_1_BaseColor
+    second: {fileID: 2800000, guid: c8fa75397d92e1d4792e8ed32048a8c9, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Generador_Modif._Luz_1_BaseColor
+    second: {fileID: 2800000, guid: c6e96dbf6dd907d4f91d1302203c46e6, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Generador_Modif._Manilla_1_BaseColor
+    second: {fileID: 2800000, guid: 1d663b1220a75a649a91987782765914, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Generador_Modif._Motor_1_BaseColor
+    second: {fileID: 2800000, guid: ddac5abacb40f9648b4beccf5bfe6f7f, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Generador_Modif._Panel_001_BaseColor
+    second: {fileID: 2800000, guid: 3bc44077aa6b97444aef820eeaf65a4f, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Generador_Modif._Panel_1_BaseColor
+    second: {fileID: 2800000, guid: 081380d660cf7ef44826298a9997abd3, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Generador_Modif._Patas1_BaseColor
+    second: {fileID: 2800000, guid: 4ca70699ec8c8584f9528a74242ab1d2, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Generador_Modif._Rotor_1_BaseColor
+    second: {fileID: 2800000, guid: 35fc3d52f270fd34cbf22a25c291f93f, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Generador_Modif._Salida_1_BaseColor
+    second: {fileID: 2800000, guid: fbdc86ebe2d3b1142b4498b014ce0324, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Generador_Modif._Soporte_1_BaseColor
+    second: {fileID: 2800000, guid: 789e933cff032b945996e6752fc637e9, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Generador_Modif._Sostenedor_1_BaseColor
+    second: {fileID: 2800000, guid: 94f87a06b01bb194f8016b5a703b7eb1, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Generador_Modif._Tanque1_BaseColor
+    second: {fileID: 2800000, guid: 0c31d6b2c0e493f438da3090187f196b, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Generador_Modif._Tornilos_1_BaseColor
+    second: {fileID: 2800000, guid: 1012d1b0a4594d34399e2419356ade2e, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Generador_Modif._Tubos_1_BaseColor
+    second: {fileID: 2800000, guid: 81abdc2e15406db4db1887ddbd9b7fea, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Generador_Modif._Valvula_1_BaseColor
+    second: {fileID: 2800000, guid: e71f8cd7144db6f439fca4bc15373830, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Generador_Modif._tubo_clabe_1_BaseColor
+    second: {fileID: 2800000, guid: b38629741014b9e43b757b4efe7083a7, type: 3}
+  materials:
+    materialImportMode: 2
+    materialName: 0
+    materialSearch: 1
+    materialLocation: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    removeConstantScaleCurves: 0
+    motionNodeName: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    importAnimatedCustomProperties: 0
+    importConstraints: 0
+    animationCompression: 1
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    extraUserProperties: []
+    clipAnimations: []
+    isReadable: 0
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    useSRGBMaterialColor: 1
+    sortHierarchyByName: 1
+    importPhysicalCameras: 1
+    importVisibility: 1
+    importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
+    nodeNameCollisionStrategy: 1
+    fileIdsGeneration: 2
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    keepQuads: 0
+    weldVertices: 1
+    bakeAxisConversion: 0
+    preserveHierarchy: 0
+    skinWeightsMode: 0
+    maxBonesPerVertex: 4
+    minBoneWeight: 0.001
+    optimizeBones: 1
+    meshOptimizationFlags: -1
+    indexFormat: 0
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVMarginMethod: 1
+    secondaryUVMinLightmapResolution: 40
+    secondaryUVMinObjectScale: 1
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+    strictVertexDataChecks: 0
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+    normalCalculationMode: 4
+    legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
+    blendShapeNormalImportMode: 1
+    normalSmoothingSource: 0
+  referencedClips: []
+  importAnimation: 1
+  humanDescription:
+    serializedVersion: 3
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    globalScale: 1
+    rootMotionBoneName: 
+    hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 1
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  autoGenerateAvatarMappingIfUnspecified: 1
+  animationType: 2
+  humanoidOversampling: 1
+  avatarSetup: 0
+  addHumanoidExtraRootOnlyWhenUsingAvatar: 1
+  importBlendShapeDeformPercent: 1
+  remapMaterialsIfMaterialImportModeIsNone: 0
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

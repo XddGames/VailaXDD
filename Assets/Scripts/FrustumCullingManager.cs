@@ -7,7 +7,8 @@ public class FrustumCullingManager : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private Camera cullingCamera;
     [SerializeField] private bool autoFindPlayerCamera = true; // Automatically find local player's camera
-    [SerializeField] private float updateInterval = 0.2f; // Check every 0.2 seconds
+    [SerializeField] private float updateInterval = 0.5f; // Check every 0.5 seconds (was 0.2)
+    [SerializeField] private int maxObjectsPerFrame = 150; // Process max 150 objects per update to spread load
     [SerializeField] private float cullingDistance = 200f; // Max distance before culling
     [SerializeField] private bool useFrustumCulling = true;
     [SerializeField] private bool useDistanceCulling = true;
@@ -20,6 +21,7 @@ public class FrustumCullingManager : MonoBehaviour
 
     private List<CullableObject> cullableObjects = new List<CullableObject>();
     private float updateTimer = 0f;
+    private int currentBatchIndex = 0; // Track which batch we're processing
     private Plane[] frustumPlanes;
     private int culledCount = 0;
     private int totalCount = 0;
@@ -225,58 +227,69 @@ public class FrustumCullingManager : MonoBehaviour
             return;
         }
 
-        // Calculate frustum planes
+        // Calculate frustum planes once
         if (useFrustumCulling)
         {
             frustumPlanes = GeometryUtility.CalculateFrustumPlanes(cullingCamera);
         }
 
         Vector3 cameraPos = cullingCamera.transform.position;
-        culledCount = 0;
-
-        foreach (CullableObject obj in cullableObjects)
+        
+        // Process objects in batches to spread load
+        int objectsToProcess = Mathf.Min(maxObjectsPerFrame, cullableObjects.Count);
+        int startIndex = currentBatchIndex;
+        int endIndex = startIndex + objectsToProcess;
+        
+        // Reset batch index if we've processed all objects
+        if (endIndex >= cullableObjects.Count)
         {
+            endIndex = cullableObjects.Count;
+            currentBatchIndex = 0;
+            culledCount = 0; // Reset count when full cycle completes
+        }
+        else
+        {
+            currentBatchIndex = endIndex;
+        }
+
+        for (int i = startIndex; i < endIndex; i++)
+        {
+            CullableObject obj = cullableObjects[i];
             if (obj.gameObject == null) continue;
 
             bool shouldBeVisible = true;
 
             // Use original bounds centered on the object's current position
             Vector3 objectCenter = obj.gameObject.transform.position;
-            Bounds testBounds = new Bounds(objectCenter, obj.originalBounds.size);
-
-            // Distance culling
+            
+            // Fast distance check first (cheapest)
             if (useDistanceCulling)
             {
-                obj.distanceToCamera = Vector3.Distance(cameraPos, objectCenter);
-                if (obj.distanceToCamera > cullingDistance)
+                float sqrDistance = (cameraPos - objectCenter).sqrMagnitude; // Faster than Distance
+                if (sqrDistance > cullingDistance * cullingDistance)
                 {
                     shouldBeVisible = false;
                 }
             }
 
-            // Frustum culling
+            // Frustum culling (only if passed distance check)
             if (shouldBeVisible && useFrustumCulling)
             {
+                Bounds testBounds = new Bounds(objectCenter, obj.originalBounds.size);
                 if (!GeometryUtility.TestPlanesAABB(frustumPlanes, testBounds))
                 {
                     shouldBeVisible = false;
                 }
             }
 
-            // Debug first few objects
-            if (showDebugInfo && Time.frameCount % 300 == 0 && culledCount < 3)
-            {
-                Debug.Log($"Object {obj.gameObject.name}: visible={shouldBeVisible}, distance={obj.distanceToCamera:F1}m, bounds={testBounds.center}");
-            }
-
-            // Update visibility
+            // Only update if visibility changed
             if (obj.isVisible != shouldBeVisible)
             {
                 SetObjectVisibility(obj, shouldBeVisible);
                 obj.isVisible = shouldBeVisible;
             }
 
-            if (!shouldBeVisible)
+            if (!shouldBeVisible && startIndex == 0) // Only count on full cycles
             {
                 culledCount++;
             }

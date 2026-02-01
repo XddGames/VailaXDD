@@ -99,6 +99,36 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   eyeHeight: 1.7
+  enableScaling: 1
+  scalingDuration: 600
+  teleportSpeedScaling: 0.3
+  movementSpeedScaling: 1.5
+  suspicionGainScaling: 2.5
+  observeRangeScaling: 1.5
+  scalingCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
   animator: {fileID: 0}
 --- !u!195 &899136641117336230
 NavMeshAgent:

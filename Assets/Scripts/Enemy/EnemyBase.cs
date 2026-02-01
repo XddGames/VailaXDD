@@ -57,6 +57,33 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
     [SerializeField] private LayerMask obstacleMask = -1; // Layers that block line of sight (walls, buildings, etc.)
     [SerializeField] private float eyeHeight = 1.7f; // Height from which enemy checks line of sight
 
+    [Header("Difficulty Scaling (10-20+ min sessions)")]
+    [SerializeField] private bool enableScaling = true;
+    [SerializeField] private float scalingDuration = 1200f; // Time to reach max difficulty (20 minutes in seconds)
+    [Tooltip("Teleport interval multiplier at max difficulty (lower = faster teleports)")]
+    [SerializeField] private float teleportSpeedScaling = 0.4f; // At 20min: teleports 60% faster
+    [Tooltip("Movement speed multiplier at max difficulty")]
+    [SerializeField] private float movementSpeedScaling = 1.5f; // At 20min: 50% faster movement
+    [Tooltip("Suspicion gain multiplier at max difficulty")]
+    [SerializeField] private float suspicionGainScaling = 2.0f; // At 20min: 2x suspicion gain
+    [Tooltip("Observe range increase at max difficulty")]
+    [SerializeField] private float observeRangeScaling = 1.3f; // At 20min: 30% larger detection range
+    [SerializeField] private AnimationCurve scalingCurve = AnimationCurve.EaseInOut(0, 0, 1, 1); // Scaling curve over time
+
+    // Base values (stored at start)
+    private float baseTeleportInterval;
+    private float basePatrolSpeed;
+    private float baseChaseSpeed;
+    private float baseSabotageSpeed;
+    private float baseObserveGainRateClose;
+    private float baseObserveGainRateFar;
+    private float baseObserveRange;
+    private float basePatrolSuspicionRange;
+    
+    // Difficulty tracking
+    private float gameStartTime;
+    private float currentDifficultyMultiplier = 1f;
+
     private EnemyState state = EnemyState.Teleporting;
     private NavMeshAgent agent;
 
@@ -174,6 +201,19 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         pv = GetComponent<PhotonView>();
         agent = GetComponent<NavMeshAgent>();
 
+        // Store base values for scaling
+        baseTeleportInterval = teleportInterval;
+        basePatrolSpeed = patrolSpeed;
+        baseChaseSpeed = chaseSpeed;
+        baseSabotageSpeed = sabotageWalkSpeed;
+        baseObserveGainRateClose = observeGainRateClose;
+        baseObserveGainRateFar = observeGainRateFar;
+        baseObserveRange = observeRange;
+        basePatrolSuspicionRange = patrolSuspicionRange;
+        
+        // Record game start time
+        gameStartTime = Time.time;
+
         // Configure agent to prevent sliding
         if (agent != null)
         {
@@ -226,6 +266,12 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         if (Time.frameCount % 300 == 0) // Every 5 seconds at 60fps
         {
             FindAllPlayers();
+        }
+
+        // Update difficulty scaling
+        if (enableScaling && PhotonNetwork.IsMasterClient)
+        {
+            UpdateDifficultyScaling();
         }
 
         if (Players == null || Players.Count == 0) return;
@@ -792,6 +838,47 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
     // ===== HELPERS =====
     
     /// <summary>
+    /// Updates difficulty scaling based on elapsed game time
+    /// </summary>
+    private void UpdateDifficultyScaling()
+    {
+        float elapsedTime = Time.time - gameStartTime;
+        float progress = Mathf.Clamp01(elapsedTime / scalingDuration);
+        
+        // Use curve to smooth scaling progression
+        float curveValue = scalingCurve.Evaluate(progress);
+        currentDifficultyMultiplier = curveValue;
+        
+        // Apply scaling to teleport interval (lower = faster)
+        float teleportMultiplier = Mathf.Lerp(1f, teleportSpeedScaling, curveValue);
+        teleportInterval = baseTeleportInterval * teleportMultiplier;
+        
+        // Apply scaling to movement speeds
+        float speedMultiplier = Mathf.Lerp(1f, movementSpeedScaling, curveValue);
+        patrolSpeed = basePatrolSpeed * speedMultiplier;
+        chaseSpeed = baseChaseSpeed * speedMultiplier;
+        sabotageWalkSpeed = baseSabotageSpeed * speedMultiplier;
+        
+        // Apply scaling to suspicion gain rates
+        float suspicionMultiplier = Mathf.Lerp(1f, suspicionGainScaling, curveValue);
+        observeGainRateClose = baseObserveGainRateClose * suspicionMultiplier;
+        observeGainRateFar = baseObserveGainRateFar * suspicionMultiplier;
+        
+        // Apply scaling to detection ranges
+        float rangeMultiplier = Mathf.Lerp(1f, observeRangeScaling, curveValue);
+        observeRange = baseObserveRange * rangeMultiplier;
+        patrolSuspicionRange = basePatrolSuspicionRange * rangeMultiplier;
+        
+        // Debug output (only once per minute)
+        if (showDebug && Time.frameCount % 3600 == 0)
+        {
+            float minutesElapsed = elapsedTime / 60f;
+            Debug.Log($"<color=cyan>[Difficulty Scaling] Time: {minutesElapsed:F1}min | Progress: {progress:P0} | " +
+                     $"Teleport: {teleportInterval:F1}s | Speed: x{speedMultiplier:F2} | Suspicion: x{suspicionMultiplier:F2} | Range: {observeRange:F0}m</color>");
+        }
+    }
+    
+    /// <summary>
     /// Checks if the enemy has a clear line of sight to the target (no walls/obstacles)
     /// </summary>
     bool HasLineOfSight(Transform target)
@@ -1051,6 +1138,17 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         GUI.color = Color.white;
         GUI.Label(new Rect(10, 10, 300, 20), $"State: {state}");
         GUI.Label(new Rect(10, 30, 300, 20), $"Suspicion: {maxSus:F2}");
+        
+        // Show difficulty scaling info
+        if (enableScaling)
+        {
+            float elapsedMinutes = (Time.time - gameStartTime) / 60f;
+            float progressPercent = (currentDifficultyMultiplier * 100f);
+            GUI.color = Color.Lerp(Color.green, Color.red, currentDifficultyMultiplier);
+            GUI.Label(new Rect(10, 90, 300, 20), $"Difficulty: {progressPercent:F0}% ({elapsedMinutes:F1}min)");
+            GUI.color = Color.white;
+        }
+        
         if (state == EnemyState.Teleporting)
             GUI.Label(new Rect(10, 70, 300, 20), $"Teleport in: {(teleportInterval - teleportTimer):F1}s");
 
