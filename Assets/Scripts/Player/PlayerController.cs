@@ -81,6 +81,11 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     private PlayerState currentState;
     private bool infiniteStamina = false;
     private bool lastJumpInput = false;
+    private bool speedToggleActive = false;
+    private float savedWalkSpeed;
+    private float savedSprintSpeed;
+    [SerializeField] private float toggleSpeed = 25f; // speed used when toggled on
+
 
     public PlayerState GetCurrentState()
     {
@@ -195,6 +200,11 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             }
         }
 
+        if (Input.GetKeyDown(KeyCode.C))
+        {
+            ToggleSpeed();
+        }
+        
         if (Input.GetKeyDown(KeyCode.G)) // mask
         {
             playerMask.SetMaskState(!playerMask.HasMaskOn);
@@ -723,6 +733,28 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     {
         return CalculateSpeed();
     }
+
+    // Toggle player's walk/sprint speed between normal and `toggleSpeed`.
+    private void ToggleSpeed()
+    {
+        speedToggleActive = !speedToggleActive;
+        if (speedToggleActive)
+        {
+            savedWalkSpeed = walkSpeed;
+            savedSprintSpeed = sprintSpeed;
+            walkSpeed = toggleSpeed;
+            sprintSpeed = toggleSpeed;
+        }
+        else
+        {
+            walkSpeed = savedWalkSpeed;
+            sprintSpeed = savedSprintSpeed;
+        }
+    }
+
+
+
+
 
     private void OnGUI()
     {
