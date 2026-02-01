@@ -146415,7 +146415,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gen1: {fileID: 1132270423}
   gen2: {fileID: 715693546}
-  hospitalLightsParent: {fileID: 0}
+  hospitalLightsParent: {fileID: 21825376}
 --- !u!4 &649170097
 Transform:
   m_ObjectHideFlags: 0
@@ -277534,7 +277534,7 @@ Transform:
   m_GameObject: {fileID: 1208509190}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 383.383, y: 15.09, z: 274.02307}
+  m_LocalPosition: {x: 383.383, y: 15.09, z: 279.89}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:

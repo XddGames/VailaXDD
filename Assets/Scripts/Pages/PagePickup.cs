@@ -8,6 +8,7 @@ public class PagePickup : MonoBehaviourPun
 
     public void OnPickedUp(PlayerController player)
     {
+        Debug.Log($"COLLECTED PID{pieceID}");
         player.CollectPage(pieceID);
 
         if (PhotonNetwork.IsConnected && photonView != null && photonView.IsMine)

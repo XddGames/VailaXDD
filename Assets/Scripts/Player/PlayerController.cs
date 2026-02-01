@@ -239,7 +239,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     private void HandlePaperInteraction()
     {
-        Collider[] hits = Physics.OverlapSphere(transform.position, interactRange, paperLayerMask);
+        Collider[] hits = Physics.OverlapSphere(transform.position, 4f, paperLayerMask);
             
         foreach (Collider hit in hits)
         {
@@ -416,6 +416,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 HandleStamina();
                 HandleRevive();
                 HandleGenerator();
+                HandlePaperInteraction();
                 HandleGraveyardInteraction();
                 HandleEmoteInput();
                 break;

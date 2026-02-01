@@ -66,6 +66,7 @@ MonoBehaviour:
   - RPC_OnPlayerDeath
   - RPC_SyncJumpscare
   - RPC_SyncPosition
+  - RPC_InitializeMinigame
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 0
