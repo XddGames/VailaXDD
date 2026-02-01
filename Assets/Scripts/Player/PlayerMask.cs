@@ -52,10 +52,14 @@
         {
             HasMaskOn = isOn;
 
+            // Only show UI overlay for the local player
+            PhotonView photonView = GetComponent<PhotonView>();
+            bool isLocalPlayer = photonView != null && photonView.IsMine;
+            
             if (maskOverlayUI != null)
             {
-                maskOverlayUI.SetActive(isOn);
-                Debug.Log($"MASK HAS MASKED TO {isOn}");
+                maskOverlayUI.SetActive(isOn && isLocalPlayer);
+                Debug.Log($"MASK HAS MASKED TO {isOn} (UI shown: {isOn && isLocalPlayer})");
             }
             
             // Show/hide physical 3D mask
@@ -68,7 +72,8 @@
             {
                 if (equipSound != null) AudioSource.PlayClipAtPoint(equipSound, transform.position);
 
-                if (audioSource != null && breathingSound != null)
+                // Only play breathing sound for local player
+                if (isLocalPlayer && audioSource != null && breathingSound != null)
                 {
                     audioSource.clip = breathingSound;
                     audioSource.loop = true;
@@ -77,7 +82,7 @@
             }
             else
             {
-                if (audioSource != null) audioSource.Stop();
+                if (isLocalPlayer && audioSource != null) audioSource.Stop();
             }
         }
     }
