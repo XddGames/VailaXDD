@@ -1169,7 +1169,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         }
 
         bool newState = !playerMask.HasMaskOn;
-        Debug.Log($"ToggleMask: Changing from {playerMask.HasMaskOn} to {newState}");
         playerMask.SetMaskState(newState);
 
         if (PhotonNetwork.IsConnected && photonView != null)
@@ -1275,14 +1274,14 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             int total = currentGraveyardMinigame.GetTotalGravestones();
             string nextName = currentGraveyardMinigame.GetNextExpectedName();
             
-            GUI.Box(new Rect(Screen.width / 2 - 150, 20, 300, 60), "");
+            /*GUI.Box(new Rect(Screen.width / 2 - 150, 20, 300, 60), "");
             GUI.Label(new Rect(Screen.width / 2 - 140, 30, 280, 20), $"Cemitério: {progress}/{total}");
-            GUI.Label(new Rect(Screen.width / 2 - 140, 50, 280, 20), $"Próximo: {nextName}");
+            GUI.Label(new Rect(Screen.width / 2 - 140, 50, 280, 20), $"Próximo: {nextName}");*/
         }
 
         if (currentGraveyardMinigame != null && currentGraveyardMinigame.IsMinigameCompleted())
         {
-            GUI.Label(new Rect(Screen.width / 2 - 100, 100, 200, 30), "MINIGAME COMPLETO!");
+            //GUI.Label(new Rect(Screen.width / 2 - 100, 100, 200, 30), "MINIGAME COMPLETO!");
         }
             
         if (playerBeingRevived != null)

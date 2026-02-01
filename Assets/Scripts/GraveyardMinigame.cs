@@ -85,39 +85,42 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
         {
             if (PhotonNetwork.IsMasterClient)
             {
-                // MasterClient gera os índices dos nomes e sincroniza com todos
-                int[] nameIndices = GenerateRandomNameIndices();
-                photonView.RPC(nameof(RPC_InitializeMinigameWithNames), RpcTarget.AllBuffered, nameIndices);
+                // MasterClient gera os índices completamente shuffled
+                int[] shuffledAssignments = GenerateShuffledAssignments();
+                photonView.RPC(nameof(RPC_InitializeMinigameWithNames), RpcTarget.AllBuffered, shuffledAssignments);
             }
             // Novos jogadores receberão o RPC via AllBuffered
         }
         else
         {
             // Singleplayer
-            int[] nameIndices = GenerateRandomNameIndices();
-            InitializeMinigameWithNames(nameIndices);
+            int[] shuffledAssignments = GenerateShuffledAssignments();
+            InitializeMinigameWithNames(shuffledAssignments);
         }
     }
 
-    private int[] GenerateRandomNameIndices()
+    private int[] GenerateShuffledAssignments()
     {
-        // Create shuffled indices
-        List<int> indices = new List<int>();
-        for (int i = 0; i < namePool.Count; i++)
+        // Pega apenas o número de nomes necessários
+        int gravestoneCount = gravestones.Count;
+        
+        // Cria lista de índices do namePool
+        List<int> nameIndices = new List<int>();
+        for (int i = 0; i < Mathf.Min(namePool.Count, gravestoneCount); i++)
         {
-            indices.Add(i);
+            nameIndices.Add(i);
         }
         
-        // Shuffle using Fisher-Yates
-        for (int i = indices.Count - 1; i > 0; i--)
+        // Embaralha os índices dos nomes usando Fisher-Yates
+        for (int i = nameIndices.Count - 1; i > 0; i--)
         {
             int randomIndex = Random.Range(0, i + 1);
-            int temp = indices[i];
-            indices[i] = indices[randomIndex];
-            indices[randomIndex] = temp;
+            int temp = nameIndices[i];
+            nameIndices[i] = nameIndices[randomIndex];
+            nameIndices[randomIndex] = temp;
         }
         
-        return indices.ToArray();
+        return nameIndices.ToArray();
     }
 
     [PunRPC]
@@ -159,14 +162,14 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
         minigameCompleted = false; 
     }
 
-    private void AssignRandomNamesFromIndices(int[] nameIndices)
+    private void AssignRandomNamesFromIndices(int[] shuffledNameIndices)
     {
-        // Assign names to gravestones using the synchronized indices
-        for (int i = 0; i < gravestones.Count && i < nameIndices.Length; i++)
+        // Atribui os nomes embaralhados às gravestones
+        for (int i = 0; i < gravestones.Count && i < shuffledNameIndices.Length; i++)
         {
-            if (gravestones[i] != null && nameIndices[i] < namePool.Count)
+            if (gravestones[i] != null && shuffledNameIndices[i] < namePool.Count)
             {
-                GravestoneData data = namePool[nameIndices[i]];
+                GravestoneData data = namePool[shuffledNameIndices[i]];
                 gravestones[i].SetName(data.name);
                 gravestones[i].SetDisplayText(data.GetFullText());
             }
