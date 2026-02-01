@@ -1158,7 +1158,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         if (playerMask == null) return;
 
         bool newState = !playerMask.HasMaskOn;
-        playerMask.SetMaskState(newstate);
+        playerMask.SetMaskState(newState);
 
         if (PhotonNetwork.IsConnected && photonView != null)
         {
