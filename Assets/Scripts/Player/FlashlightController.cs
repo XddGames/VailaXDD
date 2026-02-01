@@ -12,6 +12,7 @@ public class FlashlightController : MonoBehaviour
     private bool isOwnedByLocalPlayer = false; // Only true when held by local player - STARTS FALSE
     private PhotonView parentPhotonView; // Reference to player's PhotonView
     private bool ownerWasExplicitlySet = false; // Only true after SetOwner() is called
+    private PlayerController playerController; // To check if player is alive
 
     void Awake()
     {
@@ -46,6 +47,9 @@ public class FlashlightController : MonoBehaviour
     {
         // ONLY respond to input if this flashlight is owned by the local player
         if (!isOwnedByLocalPlayer) return;
+        
+        // Don't allow flashlight use when dead/spectating
+        if (playerController != null && playerController.GetCurrentState() != PlayerState.Alive) return;
 
         // F toggles flashlight (only if equipped)
         if (isEquipped && Input.GetKeyDown(KeyCode.F))
@@ -63,6 +67,12 @@ public class FlashlightController : MonoBehaviour
         parentPhotonView = ownerPhotonView;
         ownerWasExplicitlySet = true; // Mark that ownership was explicitly set
         isOwnedByLocalPlayer = (ownerPhotonView != null && ownerPhotonView.IsMine);
+        
+        // Cache PlayerController reference for alive checks
+        if (ownerPhotonView != null)
+        {
+            playerController = ownerPhotonView.GetComponent<PlayerController>();
+        }
         Debug.Log($"FlashlightController: SetOwner called, isOwnedByLocalPlayer = {isOwnedByLocalPlayer}");
     }
 
