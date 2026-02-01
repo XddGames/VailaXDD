@@ -1222,6 +1222,9 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   toggleSpeed: 25
+  paperLayerMask:
+    serializedVersion: 2
+    m_Bits: 0
 --- !u!114 &-2464049246914389084
 MonoBehaviour:
   m_ObjectHideFlags: 0
