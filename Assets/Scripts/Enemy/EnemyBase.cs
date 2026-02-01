@@ -285,13 +285,6 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
             UpdateJumpscare();
             return; // Don't do normal AI during jumpscare
         }
-        
-        // DEBUG: Press "." to force trigger jumpscare
-        if (Input.GetKeyDown(KeyCode.Period))
-        {
-            Debug.Log("<color=yellow>[DEBUG] Forcing jumpscare!</color>");
-            TryStartJumpscare();
-        }
 
         if (Time.frameCount % 300 == 0) // Every 5 seconds at 60fps
         {
