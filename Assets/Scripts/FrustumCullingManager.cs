@@ -20,7 +20,7 @@ public class FrustumCullingManager : MonoBehaviour
 
     [Header("Targeting")]
     [SerializeField] private LayerMask searchLayers = -1;
-    [SerializeField] private string[] ignoreTags = new string[] { "Player", "LocalPlayer", "MainCamera" };
+    [SerializeField] private string[] ignoreTags = new string[] { "Player", "MainCamera" };
     [SerializeField] private bool autoFindPlayerCamera = true;
     [SerializeField] private Camera cullingCamera;
 
