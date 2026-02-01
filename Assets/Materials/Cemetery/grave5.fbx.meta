@@ -3,7 +3,22 @@ guid: b467e7afaa8f4d04d8f7f555e602834a
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: krestALL
+    second: {fileID: 2100000, guid: d2c05bc2b5ab5e04dbf69b1a2dcaa5ab, type: 2}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: krestALL_low_DefaultMaterial_Normal
+    second: {fileID: 2800000, guid: 42faf0bc0ae48d744b93b17de47b915b, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: krestALL_low_DefaultMaterial_Roughness
+    second: {fileID: 2800000, guid: 46c4854995bec4c40b71e36ce6457e0c, type: 3}
   materials:
     materialImportMode: 2
     materialName: 0

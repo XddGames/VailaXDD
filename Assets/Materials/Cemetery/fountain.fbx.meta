@@ -3,7 +3,22 @@ guid: a6f18a80f9faafd46b5be4228658deff
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: fountain
+    second: {fileID: 2100000, guid: cafc13e55e6cbaf489eb83c8e7d61c32, type: 2}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: fountain_low_0_Normal
+    second: {fileID: 2800000, guid: b9b712bdb742c6146a65f83e08bef50b, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: fountain_low_0_Roughness
+    second: {fileID: 2800000, guid: a95e8612b6c42564db60c1e0bb84fdb5, type: 3}
   materials:
     materialImportMode: 2
     materialName: 0

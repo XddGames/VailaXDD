@@ -51,6 +51,9 @@ MonoBehaviour:
   - RPC_Reset
   - RPC_SetGlow
   - RPC_SyncFlashlight
+  - RPC_SyncEquipped
+  - RPC_SyncFlashlightEquipped
+  - RPC_SyncFlashlightState
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 0
