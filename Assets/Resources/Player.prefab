@@ -184,6 +184,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maskOverlayUI: {fileID: 3795670009152711404}
+  physicalMask: {fileID: 4648074337709030233}
   audioSource: {fileID: 0}
   breathingSound: {fileID: 0}
   equipSound: {fileID: 0}
@@ -1473,6 +1474,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 7dbb8d3205bdeb34694380ddf23315a3, type: 3}
+--- !u!1 &4648074337709030233 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 7dbb8d3205bdeb34694380ddf23315a3, type: 3}
+  m_PrefabInstance: {fileID: 5494443403511612936}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &5461342799996723683 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 7dbb8d3205bdeb34694380ddf23315a3, type: 3}
