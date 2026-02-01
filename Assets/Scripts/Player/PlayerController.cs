@@ -1,6 +1,7 @@
 using UnityEngine;
 using Photon.Pun;
 using System.Diagnostics;
+using System.Collections.Generic;
 public enum PlayerState
 {
     Alive,
@@ -122,6 +123,8 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     private bool isPlayingEmote = false;
     private int lastAnimState = 0; // Track current animation to avoid redundant CrossFade calls
     private float deathPositionY = 0f; // Store Y position when player dies
+    [SerializeField] private LayerMask paperLayerMask; // Set this to a new Layer "Paper"
+    private List<int> papersPickedUp;
 
 
     public PlayerState GetCurrentState()
@@ -144,6 +147,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     private void Start()
     {
+        papersPickedUp = new List<int>();
         // Setup for both local and remote players
         if (photonView.IsMine && PhotonNetwork.IsConnected)
         {
@@ -227,6 +231,29 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             }
         }
     }
+
+    private void HandlePaperInteraction()
+    {
+        Collider[] hits = Physics.OverlapSphere(transform.position, interactRange, paperLayerMask);
+            
+        foreach (Collider hit in hits)
+        {
+            PagePickup paper = hit.GetComponent<PagePickup>();
+            if (paper != null)
+            {
+                UnityEngine.Debug.Log($"Picked up Paper ID: {paper.pieceID}");
+                papersPickedUp.Add(paper.pieceID); 
+                UnityEngine.Debug.Log(papersPickedUp);
+                paper.OnPickedUp();
+                return; 
+            }
+        }
+        
+        // Note: lastInteractState is updated in HandleInteraction(), 
+        // so ensure HandleInteraction() is called AFTER this method in Update(),
+        // OR manage the state update carefully if they share the same key.
+    }
+
     private void HandleRemotePlayerPhysics()
     {
         if (characterController == null || !characterController.enabled) return;
