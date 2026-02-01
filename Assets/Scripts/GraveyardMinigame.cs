@@ -68,6 +68,7 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
     private int currentIndex = 0;
     private bool minigameActive = false;
     private bool minigameCompleted = false;
+    private int randomSeed = 0;
 
     private void Awake()
     {
@@ -80,15 +81,39 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
 
     private void Start()
     {
-        InitializeMinigame();
+        if (PhotonNetwork.IsConnected)
+        {
+            if (PhotonNetwork.IsMasterClient)
+            {
+                // MasterClient gera o seed e sincroniza com todos
+                randomSeed = Random.Range(0, 999999);
+                photonView.RPC(nameof(RPC_InitializeMinigame), RpcTarget.AllBuffered, randomSeed);
+            }
+            // Novos jogadores receberão o RPC via AllBuffered
+        }
+        else
+        {
+            // Singleplayer
+            randomSeed = Random.Range(0, 999999);
+            InitializeMinigame(randomSeed);
+        }
     }
 
-    private void InitializeMinigame()
+    [PunRPC]
+    private void RPC_InitializeMinigame(int seed)
+    {
+        InitializeMinigame(seed);
+    }
+
+    private void InitializeMinigame(int seed)
     {
         if (gravestones == null || gravestones.Count == 0)
         {
             return;
         }
+
+        randomSeed = seed;
+        Random.InitState(seed);
 
         // Assign random names if enabled
         if (useRandomNames)
@@ -151,12 +176,14 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
         // Find the index of the clicked gravestone in the sorted list
         int clickedIndex = sortedGravestones.IndexOf(clickedGravestone);
         
+        // Qualquer jogador pode clicar, mas apenas processar uma vez
         // Check if this is the correct gravestone in the sequence
         if (clickedIndex == currentIndex)
         {
             // Synchronize the correct click across all clients
             if (PhotonNetwork.IsConnected && photonView != null)
             {
+                // Qualquer cliente pode enviar, mas só processa se ainda estiver no índice correto
                 photonView.RPC(nameof(RPC_CorrectGravestoneClicked), RpcTarget.AllBuffered, clickedIndex);
             }
             else
@@ -192,6 +219,12 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
 
     private void ProcessCorrectClick(int gravestoneIndex)
     {
+        // Verificar se ainda é o índice correto (evita processamento duplicado)
+        if (gravestoneIndex != currentIndex)
+        {
+            return;
+        }
+
         if (gravestoneIndex >= 0 && gravestoneIndex < sortedGravestones.Count)
         {
             sortedGravestones[gravestoneIndex].SetGlowState(true);
@@ -214,10 +247,15 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
 
     private void CompleteMinigame()
     {
+        if (minigameCompleted)
+        {
+            return; // Já completado, evitar duplicação
+        }
+
         if (PhotonNetwork.IsConnected && photonView != null)
         {
-            // Only master client spawns the reward to avoid duplicates
-            if (PhotonNetwork.IsMasterClient)
+            // Qualquer jogador pode enviar, mas só processa uma vez
+            if (!minigameCompleted)
             {
                 photonView.RPC(nameof(RPC_CompleteMinigame), RpcTarget.AllBuffered);
             }
@@ -236,6 +274,11 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
 
     private void FinalizeCompletion()
     {
+        if (minigameCompleted)
+        {
+            return; // Já foi finalizado, evitar duplicação
+        }
+
         minigameCompleted = true;
         minigameActive = false;
         
@@ -243,7 +286,10 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
         
         foreach (var gravestone in gravestones)
         {
-            gravestone.SetClickable(false);
+            if (gravestone != null)
+            {
+                gravestone.SetClickable(false);
+            }
         }
 
         if (spawnRewardOnComplete && rewardPrefab != null && rewardSpawnPoint != null)
@@ -263,10 +309,8 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
     {
         if (PhotonNetwork.IsConnected && photonView != null)
         {
-            if (PhotonNetwork.IsMasterClient)
-            {
-                photonView.RPC(nameof(RPC_ResetMinigame), RpcTarget.AllBuffered);
-            }
+            // Qualquer jogador pode resetar o minigame
+            photonView.RPC(nameof(RPC_ResetMinigame), RpcTarget.AllBuffered);
         }
         else
         {
@@ -286,7 +330,10 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
         
         foreach (var gravestone in gravestones)
         {
-            gravestone.ResetGravestone();
+            if (gravestone != null)
+            {
+                gravestone.ResetGravestone();
+            }
         }
     }
 
