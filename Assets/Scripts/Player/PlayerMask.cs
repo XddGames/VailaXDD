@@ -38,9 +38,6 @@
             if (physicalMask != null)
             {
                 physicalMask.SetActive(false);
-                
-                // Cache renderers for the physical mask
-                physicalMaskRenderers = physicalMask.GetComponentsInChildren<Renderer>(true);
             }
 
             if (audioSource == null)
@@ -71,19 +68,20 @@
                 maskOverlayUI.SetActive(isOn && isLocalPlayer);
             }
             
-            // Handle physical 3D mask - always activate GameObject, but control renderer visibility
+            // Handle physical 3D mask
             if (physicalMask != null)
             {
-                physicalMask.SetActive(isOn);
-                
-                // For local player, hide the physical mask renderers so it doesn't block their view
-                // For remote players, show the physical mask so they can see it
-                if (physicalMaskRenderers != null)
+                // For local player, disable the entire physical mask GameObject
+                // For remote players, enable it so they can see the mask
+                if (isLocalPlayer)
                 {
-                    foreach (Renderer renderer in physicalMaskRenderers)
-                    {
-                        renderer.enabled = isOn && !isLocalPlayer;
-                    }
+                    // Local player: keep mask off to not block their view
+                    physicalMask.SetActive(false);
+                }
+                else
+                {
+                    // Remote players: show/hide based on mask state
+                    physicalMask.SetActive(isOn);
                 }
             }
 
