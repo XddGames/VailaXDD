@@ -4,7 +4,9 @@ public class LightingManager : MonoBehaviour
 {
     public PowerGenerator gen1;
     public PowerGenerator gen2;
-    public GameObject[] buildingLights; // drag lights here
+
+    [Header("Parent")]
+    public GameObject hospitalLightsParent;
 
     void Start()
     {
@@ -18,7 +20,7 @@ public class LightingManager : MonoBehaviour
     {
         bool powerRestored = gen1.IsOn && gen2.IsOn;
 
-        foreach (GameObject lightObj in buildingLights)
+        foreach (GameObject lightObj in hospitalLightsParent)
         {
             lightObj.SetActive(powerRestored);
         }
