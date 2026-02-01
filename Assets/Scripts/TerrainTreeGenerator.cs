@@ -40,6 +40,14 @@ public class TerrainTreeGenerator : MonoBehaviour
 
     private Transform treeParent;
 
+    public void Start()
+    {
+        Timer theTimer = Object.FindFirstObjectByType<Timer>();
+        if (theTimer != null){
+        theTimer.Begin();
+      }
+    }
+
     public void GenerateTrees()
     {
         if (terrain == null)

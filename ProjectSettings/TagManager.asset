@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Bullet
   - SpawnPoint
+  - TIMER
   layers:
   - Default
   - TransparentFX
@@ -34,7 +35,6 @@ TagManager:
   - 
   - 
   - Trees
-  - 
   - 
   - 
   - 

@@ -16,6 +16,7 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
     [SerializeField] private string spawnPointTag = "SpawnPoint"; // Tag for spawn point GameObjects
     [SerializeField] Vector3 spawnPosition;
 
+
     private GameObject localPlayerInstance;
 
     private void Start()
@@ -28,7 +29,7 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
             {
                 spawnPoints[i] = spawnPointObjects[i].transform;
             }
-
+            
             if (spawnPoints.Length > 0)
             {
                 Debug.Log($"Auto-found {spawnPoints.Length} spawn points.");

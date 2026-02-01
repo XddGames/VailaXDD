@@ -582,6 +582,8 @@ public class Menu : MonoBehaviourPunCallbacks
         if (PhotonNetwork.IsMasterClient)
         {
             PhotonNetwork.LoadLevel("MapScene"); // Make sure scene is in Build Settings
+
         }
+        
     }
 }
