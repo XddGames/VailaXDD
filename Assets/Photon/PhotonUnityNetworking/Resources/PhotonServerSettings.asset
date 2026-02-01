@@ -54,6 +54,10 @@ MonoBehaviour:
   - RPC_SyncEquipped
   - RPC_SyncFlashlightEquipped
   - RPC_SyncFlashlightState
+  - RPC_DestroyPickupByPosition
+  - RPC_PickedUp
+  - RPC_RequestDestroyPickup
+  - RPC_SpawnFlashlightOnPlayer
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 0

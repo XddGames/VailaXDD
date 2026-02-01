@@ -105,10 +105,12 @@ public class FrustumCullingManager : MonoBehaviour
             // 1. Skip ignored layers
             if (((1 << go.layer) & searchLayers) == 0) continue;
             
-            // 2. Skip ignored tags
+            // 2. Skip ignored tags (with safe check for undefined tags)
             bool isIgnored = false;
             foreach (string tag in ignoreTags) {
-                if (go.CompareTag(tag)) { isIgnored = true; break; }
+                try {
+                    if (go.CompareTag(tag)) { isIgnored = true; break; }
+                } catch { } // Tag doesn't exist, skip it
             }
             if (isIgnored) continue;
 

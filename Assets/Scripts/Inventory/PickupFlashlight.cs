@@ -3,7 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using Photon.Pun;
 
-public class PickupFlashlight : MonoBehaviourPun
+public class PickupFlashlight : MonoBehaviour
 {
     [Header("Pickup Settings")]
     [SerializeField] private KeyCode pickupKey = KeyCode.E;
@@ -23,9 +23,17 @@ public class PickupFlashlight : MonoBehaviourPun
     private static GameObject promptCanvas;
     private static TextMeshProUGUI promptText;
 
+    private void Start()
+    {
+        Debug.Log($"[PickupFlashlight] START - Script initialized on {gameObject.name}");
+    }
+
     private void Update()
     {
-        if (isPickedUp) return; // Already picked up, waiting to be destroyed
+        if (isPickedUp)
+        {
+            return;
+        }
         
         // Distance-based detection (more reliable than triggers)
         CheckPlayerDistance();
@@ -34,6 +42,7 @@ public class PickupFlashlight : MonoBehaviourPun
         {
             if (Input.GetKeyDown(pickupKey))
             {
+                Debug.Log($"[PickupFlashlight] E pressed, attempting pickup");
                 isPickedUp = true;
                 HidePrompt();
                 nearbyPlayer.PickupFlashlight(gameObject);
@@ -48,6 +57,8 @@ public class PickupFlashlight : MonoBehaviourPun
         // Find all players and check distance
         InventoryManager[] allPlayers = FindObjectsOfType<InventoryManager>();
         
+        Debug.Log($"[PickupFlashlight] Found {allPlayers.Length} InventoryManagers");
+        
         InventoryManager closestPlayer = null;
         float closestDistance = pickupRange;
 
@@ -57,10 +68,13 @@ public class PickupFlashlight : MonoBehaviourPun
             if (pv != null && pv.IsMine)
             {
                 float distance = Vector3.Distance(transform.position, player.transform.position);
+                Debug.Log($"[PickupFlashlight] Distance to local player: {distance:F2}, range: {pickupRange}");
                 if (distance < closestDistance)
                 {
                     // Check if player already has flashlight
-                    if (!player.HasItem(InventoryItem.ItemType.Flashlight))
+                    bool hasFlashlight = player.HasItem(InventoryItem.ItemType.Flashlight);
+                    Debug.Log($"[PickupFlashlight] Player has flashlight: {hasFlashlight}");
+                    if (!hasFlashlight)
                     {
                         closestPlayer = player;
                         closestDistance = distance;
@@ -72,6 +86,7 @@ public class PickupFlashlight : MonoBehaviourPun
         // Player entered range
         if (closestPlayer != null && !playerInRange)
         {
+            Debug.Log("[PickupFlashlight] Player entered range - showing prompt");
             playerInRange = true;
             nearbyPlayer = closestPlayer;
             ShowPrompt($"Press E to pick up {itemName}");
@@ -158,18 +173,6 @@ public class PickupFlashlight : MonoBehaviourPun
         {
             HidePrompt();
         }
-    }
-    
-    /// <summary>
-    /// Called by RPC to mark this pickup as taken on all clients
-    /// </summary>
-    [PunRPC]
-    public void RPC_PickedUp()
-    {
-        isPickedUp = true;
-        HidePrompt();
-        // Disable visuals and colliders
-        gameObject.SetActive(false);
     }
 
     private void OnDrawGizmosSelected()

@@ -229,31 +229,24 @@ public class InventoryManager : MonoBehaviourPun
     {
         if (photonView != null && !photonView.IsMine) return;
         
+        Debug.Log("[InventoryManager] PickupFlashlight called");
+        
         // Handle the world pickup object across the network
         if (worldFlashlight != null)
         {
-            PhotonView pickupPV = worldFlashlight.GetComponent<PhotonView>();
-            PickupFlashlight pickupScript = worldFlashlight.GetComponent<PickupFlashlight>();
+            Vector3 pickupPos = worldFlashlight.transform.position;
             
-            if (pickupPV != null)
+            // Disable locally immediately
+            worldFlashlight.SetActive(false);
+            
+            // Tell all other clients to disable/destroy this pickup by position
+            if (photonView != null)
             {
-                // Has PhotonView - use RPC to disable on all clients, then destroy
-                pickupPV.RPC("RPC_PickedUp", RpcTarget.All);
-                
-                // Schedule destruction
-                if (PhotonNetwork.IsMasterClient)
-                {
-                    // Master destroys it after a short delay
-                    StartCoroutine(DestroyPickupDelayed(worldFlashlight, 0.5f));
-                }
-            }
-            else
-            {
-                // No PhotonView - destroy locally and tell others
-                Vector3 pickupPos = worldFlashlight.transform.position;
-                Destroy(worldFlashlight);
                 photonView.RPC("RPC_DestroyPickupByPosition", RpcTarget.Others, pickupPos);
             }
+            
+            // Actually destroy it locally
+            Destroy(worldFlashlight);
         }
 
         // Add to inventory
