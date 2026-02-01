@@ -4,669 +4,259 @@ using Photon.Pun;
 
 public class FrustumCullingManager : MonoBehaviour
 {
-    [Header("Settings")]
-    [SerializeField] private Camera cullingCamera;
+    [Header("Performance Settings")]
+    [Tooltip("How many objects to process per frame. Higher = faster response, Lower = better FPS.")]
+    [SerializeField] private int objectsProcessedPerFrame = 2500; 
+    [Tooltip("Global max distance. Objects further than this are instantly hidden.")]
+    [SerializeField] private float globalCullDistance = 150f;
+    [Tooltip("Objects closer than this are ALWAYS visible (prevents popping when turning).")]
+    [SerializeField] private float minCullDistance = 10f; 
+
+    [Header("Strictness")]
+    [Tooltip("If true, objects behind the camera are aggressively hidden using Dot Product.")]
+    [SerializeField] private bool aggressiveBackCulling = true;
+    [Tooltip("How much 'buffer' behind the camera to allow (negative values allow objects slightly behind).")]
+    [SerializeField] private float backCullThreshold = -0.2f;
+
+    [Header("Targeting")]
+    [SerializeField] private LayerMask searchLayers = -1;
+    [SerializeField] private string[] ignoreTags = new string[] { "Player", "LocalPlayer", "MainCamera" };
     [SerializeField] private bool autoFindPlayerCamera = true;
-    [SerializeField] private float updateInterval = 0.1f; // Faster updates for smoother culling
-    [SerializeField] private int maxObjectsPerFrame = 500; // Process more objects per update
-    [SerializeField] private float cullingDistance = 150f; // Reduced max distance before culling
-    [SerializeField] private bool useFrustumCulling = true;
-    [SerializeField] private bool useDistanceCulling = true;
-
-    [Header("Tree-Specific Optimization")]
-    [SerializeField] private bool aggressiveTreeCulling = true;
-    [SerializeField] private float treeNearDistance = 30f;   // Full detail
-    [SerializeField] private float treeMediumDistance = 60f; // Medium LOD
-    [SerializeField] private float treeFarDistance = 100f;   // Low LOD / billboard
-    [SerializeField] private bool disableTreeGameObjects = true; // Disable entire GameObject instead of just renderer
-
-    [Header("Target Layers")]
-    [SerializeField] private LayerMask cullableLayers = -1;
-    [SerializeField] private LayerMask treeLayers; // Specific layer for trees (set in inspector)
-
-    [Header("Spatial Partitioning")]
-    [SerializeField] private bool useSpatialPartitioning = true;
-    [SerializeField] private float cellSize = 50f; // Size of each grid cell
+    [SerializeField] private Camera cullingCamera;
 
     [Header("Debug")]
-    [SerializeField] private bool showDebugInfo = false;
+    [SerializeField] private bool showDebugStats = true;
 
-    private List<CullableObject> cullableObjects = new List<CullableObject>();
-    private List<CullableObject> treeObjects = new List<CullableObject>(); // Separate list for trees
-    private Dictionary<Vector2Int, List<CullableObject>> spatialGrid = new Dictionary<Vector2Int, List<CullableObject>>();
-    private float updateTimer = 0f;
-    private int currentBatchIndex = 0;
-    private int treeBatchIndex = 0;
-    private Plane[] frustumPlanes;
-    private int culledCount = 0;
-    private int totalCount = 0;
-    private Vector3 lastCameraPosition;
-    private float cameraMovementThreshold = 2f; // Only recalculate if camera moved this much
+    // The core list
+    private List<CulledItem> trackedObjects = new List<CulledItem>();
+    
+    // Runtime optimization vars
+    private Plane[] camPlanes;
+    private int currentIndex = 0;
+    private int visibleCount = 0;
+    private Vector3 camPos;
+    private Vector3 camFwd;
 
-    private class CullableObject
+    // Helper class to cache data (avoiding GetComponent calls in Update)
+    private class CulledItem
     {
-        public GameObject gameObject;
+        public GameObject obj;
+        public Transform trans;
         public Renderer[] renderers;
-        public LODGroup lodGroup;
-        public Bounds bounds;
-        public Bounds originalBounds;
+        public Bounds bounds; // Cached bounds (local size)
         public bool isVisible;
-        public bool isTree;
-        public int currentLODLevel;
-        public Vector2Int gridCell;
-        public float lastDistance;
+        public float sphereRadius; // For quick distance checks
     }
 
     private void Start()
     {
-        Invoke(nameof(DelayedStart), 0.5f);
+        // Delay slightly to ensure network players are spawned
+        Invoke(nameof(Initialize), 0.5f);
     }
 
-    private void DelayedStart()
+    private void Initialize()
     {
-        if (cullingCamera == null && autoFindPlayerCamera)
-        {
-            FindLocalPlayerCamera();
-        }
-
-        if (cullingCamera == null)
-        {
-            cullingCamera = Camera.main;
-        }
-
-        if (cullingCamera == null)
-        {
-            Debug.LogWarning("FrustumCullingManager: No camera found! Culling disabled.");
-            enabled = false;
-            return;
-        }
-
-        lastCameraPosition = cullingCamera.transform.position;
-        RegisterAllCullableObjects();
-
-        if (showDebugInfo)
-        {
-            Debug.Log($"FrustumCullingManager started with camera: {cullingCamera.name}");
-            Debug.Log($"Total objects: {cullableObjects.Count}, Trees: {treeObjects.Count}");
-        }
+        if (autoFindPlayerCamera) FindLocalCamera();
+        
+        // Scan the scene for objects
+        ScanForObjects();
     }
 
-    private void FindLocalPlayerCamera()
+    private void FindLocalCamera()
     {
-        // Find all objects with "Player" tag
-        GameObject[] players = GameObject.FindGameObjectsWithTag("Player");
-
-        foreach (GameObject player in players)
+        // 1. Try finding by Photon View (Most accurate for Multiplayer)
+        var photonViews = FindObjectsByType<PhotonView>(FindObjectsSortMode.None);
+        foreach (var pv in photonViews)
         {
-            // Check if this is the local player
-            PhotonView pv = player.GetComponent<PhotonView>();
-            if (pv != null && pv.IsMine)
+            if (pv.IsMine)
             {
-                // Get camera from local player
-                Camera cam = player.GetComponentInChildren<Camera>();
+                Camera cam = pv.GetComponentInChildren<Camera>();
                 if (cam != null)
                 {
                     cullingCamera = cam;
-                    if (showDebugInfo)
-                    {
-                        Debug.Log($"Found local player camera: {cam.name}");
-                    }
+                    Debug.Log($"[Culling] Linked to Local Player Camera: {cam.name}");
                     return;
                 }
             }
         }
 
-        // Fallback: If no photon view or not connected, just find first player camera
-        if (cullingCamera == null && players.Length > 0)
+        // 2. Fallback to MainCamera
+        if (Camera.main != null)
         {
-            Camera cam = players[0].GetComponentInChildren<Camera>();
-            if (cam != null)
-            {
-                cullingCamera = cam;
-                if (showDebugInfo)
-                {
-                    Debug.Log($"Found camera on player: {cam.name}");
-                }
-            }
+            cullingCamera = Camera.main;
+            return;
         }
+
+        Debug.LogError("[Culling] CRITICAL: No Camera found!");
+        this.enabled = false;
+    }
+
+    [ContextMenu("Rescan Scene")]
+    public void ScanForObjects()
+    {
+        trackedObjects.Clear();
+        Renderer[] allRenderers = FindObjectsByType<Renderer>(FindObjectsSortMode.None);
+
+        foreach (Renderer r in allRenderers)
+        {
+            GameObject go = r.gameObject;
+
+            // --- FILTERING ---
+            // 1. Skip ignored layers
+            if (((1 << go.layer) & searchLayers) == 0) continue;
+            
+            // 2. Skip ignored tags
+            bool isIgnored = false;
+            foreach (string tag in ignoreTags) {
+                if (go.CompareTag(tag)) { isIgnored = true; break; }
+            }
+            if (isIgnored) continue;
+
+            // 3. Skip UI
+            if (go.GetComponent<RectTransform>() != null) continue;
+
+            // --- REGISTRATION ---
+            // Group renderers if they share a parent (optimization)
+            // Note: Simplest approach is 1 object = 1 tracked item
+            
+            // Check if we already tracked this object (in case of multiple renderers)
+            // For high performance, we assume 1 GameObject = 1 Renderer usually, 
+            // or we track the parent. Here we track individual objects for granularity.
+            
+            // Calculate a safe radius for the object
+            float radius = r.bounds.extents.magnitude;
+
+            trackedObjects.Add(new CulledItem
+            {
+                obj = go,
+                trans = go.transform,
+                renderers = new Renderer[] { r }, // If you want to group them, do GetComponentsInChildren here
+                bounds = r.bounds, // Initial bounds
+                sphereRadius = radius,
+                isVisible = true
+            });
+        }
+
+        Debug.Log($"[Culling] Indexing Complete. Tracked Objects: {trackedObjects.Count}");
     }
 
     private void Update()
     {
-        if (cullingCamera == null && autoFindPlayerCamera)
+        if (cullingCamera == null)
         {
-            FindLocalPlayerCamera();
+            if (autoFindPlayerCamera) FindLocalCamera();
+            return;
         }
 
-        if (cullingCamera == null) return;
+        // 1. Cache Camera Data ONCE per frame
+        camPos = cullingCamera.transform.position;
+        camFwd = cullingCamera.transform.forward;
+        camPlanes = GeometryUtility.CalculateFrustumPlanes(cullingCamera);
 
-        updateTimer += Time.deltaTime;
-        if (updateTimer >= updateInterval)
+        // 2. Process a chunk of objects
+        int processedThisFrame = 0;
+        int totalItems = trackedObjects.Count;
+
+        // Loop through the list, wrapping around if we hit the end
+        while (processedThisFrame < objectsProcessedPerFrame)
         {
-            updateTimer = 0f;
+            if (currentIndex >= totalItems) currentIndex = 0;
+            if (totalItems == 0) break;
+
+            ProcessObject(trackedObjects[currentIndex]);
+
+            currentIndex++;
+            processedThisFrame++;
             
-            // Use spatial partitioning for trees if enabled
-            if (useSpatialPartitioning && treeObjects.Count > 0)
+            // Safety break if we did a full loop in one frame (small scenes)
+            if (processedThisFrame >= totalItems) break;
+        }
+    }
+
+    private void ProcessObject(CulledItem item)
+    {
+        if (item.obj == null) return; // Object was destroyed
+
+        bool shouldBeVisible = false;
+        Vector3 itemPos = item.trans.position;
+
+        // --- CHECK 1: DISTANCE (Cheapest) ---
+        float distSq = (itemPos - camPos).sqrMagnitude;
+        
+        // If it's super close, ALWAYS show it (prevents popping)
+        if (distSq < minCullDistance * minCullDistance)
+        {
+            shouldBeVisible = true;
+        }
+        // If it's too far, hide it
+        else if (distSq > globalCullDistance * globalCullDistance)
+        {
+            shouldBeVisible = false;
+        }
+        else
+        {
+            // --- CHECK 2: BACK-FACE CULLING (The "Behind" Fix) ---
+            bool isBehind = false;
+            if (aggressiveBackCulling)
             {
-                UpdateTreeCullingSpatial();
+                Vector3 dirToObj = (itemPos - camPos).normalized;
+                // Dot Product: 1.0 = directly in front, -1.0 = directly behind
+                if (Vector3.Dot(camFwd, dirToObj) < backCullThreshold)
+                {
+                    isBehind = true;
+                }
+            }
+
+            if (isBehind)
+            {
+                shouldBeVisible = false;
             }
             else
             {
-                UpdateTreeCulling();
-            }
-            
-            UpdateCulling();
-        }
-    }
-
-    private Vector2Int GetGridCell(Vector3 position)
-    {
-        return new Vector2Int(
-            Mathf.FloorToInt(position.x / cellSize),
-            Mathf.FloorToInt(position.z / cellSize)
-        );
-    }
-
-    private void BuildSpatialGrid()
-    {
-        spatialGrid.Clear();
-        
-        foreach (CullableObject obj in treeObjects)
-        {
-            if (obj.gameObject == null) continue;
-            
-            obj.gridCell = GetGridCell(obj.gameObject.transform.position);
-            
-            if (!spatialGrid.ContainsKey(obj.gridCell))
-            {
-                spatialGrid[obj.gridCell] = new List<CullableObject>();
-            }
-            spatialGrid[obj.gridCell].Add(obj);
-        }
-        
-        if (showDebugInfo)
-        {
-            Debug.Log($"Built spatial grid with {spatialGrid.Count} cells for {treeObjects.Count} trees");
-        }
-    }
-
-    [ContextMenu("Register All Cullable Objects")]
-    public void RegisterAllCullableObjects()
-    {
-        cullableObjects.Clear();
-        treeObjects.Clear();
-
-        // Find all renderers in the scene (unsorted is faster)
-        Renderer[] allRenderers = FindObjectsByType<Renderer>(FindObjectsSortMode.None);
-
-        foreach (Renderer renderer in allRenderers)
-        {
-            // Skip if not in cullable layers
-            if (((1 << renderer.gameObject.layer) & cullableLayers) == 0)
-                continue;
-
-            // Skip UI elements (Canvas Renderers)
-            if (renderer.gameObject.GetComponent<Canvas>() != null || 
-                renderer.gameObject.GetComponentInParent<Canvas>() != null)
-                continue;
-
-            // Skip player objects entirely
-            if (renderer.gameObject.CompareTag("Player") || renderer.transform.root.CompareTag("Player"))
-                continue;
-
-            // Skip the player camera's own objects
-            if (cullingCamera != null && renderer.transform.IsChildOf(cullingCamera.transform))
-                continue;
-
-            GameObject targetObject = renderer.gameObject;
-            
-            // Check if this specific object already registered
-            bool alreadyRegistered = false;
-            foreach (var obj in cullableObjects)
-            {
-                if (obj.gameObject == targetObject)
+                // --- CHECK 3: FRUSTUM (Most Expensive) ---
+                // We create a bounding sphere or box at the CURRENT position
+                // Using a simple bounds check is usually enough
+                Bounds currentBounds = new Bounds(itemPos, Vector3.one * item.sphereRadius * 2);
+                
+                if (GeometryUtility.TestPlanesAABB(camPlanes, currentBounds))
                 {
-                    alreadyRegistered = true;
-                    break;
-                }
-            }
-            foreach (var obj in treeObjects)
-            {
-                if (obj.gameObject == targetObject)
-                {
-                    alreadyRegistered = true;
-                    break;
-                }
-            }
-            if (alreadyRegistered) continue;
-
-            // Check if this is a tree
-            bool isTree = targetObject.CompareTag("Tree") || 
-                          targetObject.transform.root.CompareTag("Tree") ||
-                          ((1 << targetObject.layer) & treeLayers) != 0 ||
-                          targetObject.name.ToLower().Contains("tree");
-
-            Renderer[] objRenderers = targetObject.GetComponents<Renderer>();
-            if (objRenderers.Length > 0)
-            {
-                Bounds calculatedBounds = CalculateBounds(objRenderers);
-                LODGroup lodGroup = targetObject.GetComponent<LODGroup>();
-                if (lodGroup == null)
-                {
-                    lodGroup = targetObject.GetComponentInParent<LODGroup>();
-                }
-
-                CullableObject cullObj = new CullableObject
-                {
-                    gameObject = targetObject,
-                    renderers = objRenderers,
-                    lodGroup = lodGroup,
-                    bounds = calculatedBounds,
-                    originalBounds = calculatedBounds,
-                    isVisible = true,
-                    isTree = isTree,
-                    currentLODLevel = 0,
-                    lastDistance = 0f
-                };
-
-                if (isTree)
-                {
-                    treeObjects.Add(cullObj);
+                    shouldBeVisible = true;
                 }
                 else
                 {
-                    cullableObjects.Add(cullObj);
-                }
-                
-                // Ensure all renderers are enabled initially
-                foreach (Renderer r in objRenderers)
-                {
-                    if (r != null) r.enabled = true;
-                }
-            }
-        }
-
-        totalCount = cullableObjects.Count + treeObjects.Count;
-        
-        // Build spatial grid for trees
-        if (useSpatialPartitioning && treeObjects.Count > 0)
-        {
-            BuildSpatialGrid();
-        }
-        
-        if (showDebugInfo)
-        {
-            Debug.Log($"Registered {cullableObjects.Count} regular objects and {treeObjects.Count} trees");
-        }
-    }
-
-    private Bounds CalculateBounds(Renderer[] renderers)
-    {
-        if (renderers.Length == 0)
-            return new Bounds();
-
-        Bounds bounds = renderers[0].bounds;
-        for (int i = 1; i < renderers.Length; i++)
-        {
-            bounds.Encapsulate(renderers[i].bounds);
-        }
-        return bounds;
-    }
-
-    private void UpdateTreeCullingSpatial()
-    {
-        if (cullingCamera == null) return;
-
-        Vector3 cameraPos = cullingCamera.transform.position;
-        Vector2Int cameraCell = GetGridCell(cameraPos);
-        
-        // Calculate frustum planes once
-        if (useFrustumCulling)
-        {
-            frustumPlanes = GeometryUtility.CalculateFrustumPlanes(cullingCamera);
-        }
-
-        // Calculate how many cells we need to check based on culling distance
-        int cellRadius = Mathf.CeilToInt(cullingDistance / cellSize);
-
-        // Process only cells within range
-        for (int x = cameraCell.x - cellRadius; x <= cameraCell.x + cellRadius; x++)
-        {
-            for (int z = cameraCell.y - cellRadius; z <= cameraCell.y + cellRadius; z++)
-            {
-                Vector2Int cellKey = new Vector2Int(x, z);
-                if (!spatialGrid.ContainsKey(cellKey)) continue;
-
-                List<CullableObject> cellObjects = spatialGrid[cellKey];
-                foreach (CullableObject obj in cellObjects)
-                {
-                    if (obj.gameObject == null) continue;
-                    ProcessTreeObject(obj, cameraPos);
-                }
-            }
-        }
-
-        // Disable trees in cells that are too far (they weren't processed above)
-        foreach (var kvp in spatialGrid)
-        {
-            Vector2Int cell = kvp.Key;
-            if (Mathf.Abs(cell.x - cameraCell.x) > cellRadius || 
-                Mathf.Abs(cell.y - cameraCell.y) > cellRadius)
-            {
-                foreach (CullableObject obj in kvp.Value)
-                {
-                    if (obj.isVisible && obj.gameObject != null)
-                    {
-                        SetTreeVisibility(obj, false);
-                        obj.isVisible = false;
-                    }
-                }
-            }
-        }
-    }
-
-    private void UpdateTreeCulling()
-    {
-        if (treeObjects.Count == 0) return;
-        if (cullingCamera == null) return;
-
-        Vector3 cameraPos = cullingCamera.transform.position;
-        
-        if (useFrustumCulling)
-        {
-            frustumPlanes = GeometryUtility.CalculateFrustumPlanes(cullingCamera);
-        }
-
-        // Process trees in batches
-        int objectsToProcess = Mathf.Min(maxObjectsPerFrame, treeObjects.Count);
-        int startIndex = treeBatchIndex;
-        int endIndex = Mathf.Min(startIndex + objectsToProcess, treeObjects.Count);
-        
-        if (endIndex >= treeObjects.Count)
-        {
-            treeBatchIndex = 0;
-        }
-        else
-        {
-            treeBatchIndex = endIndex;
-        }
-
-        for (int i = startIndex; i < endIndex; i++)
-        {
-            CullableObject obj = treeObjects[i];
-            if (obj.gameObject == null) continue;
-            ProcessTreeObject(obj, cameraPos);
-        }
-    }
-
-    private void ProcessTreeObject(CullableObject obj, Vector3 cameraPos)
-    {
-        Vector3 objectCenter = obj.gameObject.transform.position;
-        float sqrDistance = (cameraPos - objectCenter).sqrMagnitude;
-        obj.lastDistance = sqrDistance;
-
-        bool shouldBeVisible = true;
-
-        // Distance culling - very aggressive for trees
-        if (aggressiveTreeCulling)
-        {
-            if (sqrDistance > treeFarDistance * treeFarDistance)
-            {
-                shouldBeVisible = false;
-            }
-        }
-        else if (useDistanceCulling)
-        {
-            if (sqrDistance > cullingDistance * cullingDistance)
-            {
-                shouldBeVisible = false;
-            }
-        }
-
-        // Frustum culling
-        if (shouldBeVisible && useFrustumCulling)
-        {
-            Bounds testBounds = new Bounds(objectCenter, obj.originalBounds.size);
-            if (!GeometryUtility.TestPlanesAABB(frustumPlanes, testBounds))
-            {
-                shouldBeVisible = false;
-            }
-        }
-
-        // Handle LOD for visible trees
-        if (shouldBeVisible && obj.lodGroup != null && aggressiveTreeCulling)
-        {
-            int newLODLevel = 0;
-            if (sqrDistance > treeMediumDistance * treeMediumDistance)
-            {
-                newLODLevel = 2; // Lowest detail
-            }
-            else if (sqrDistance > treeNearDistance * treeNearDistance)
-            {
-                newLODLevel = 1; // Medium detail
-            }
-
-            if (obj.currentLODLevel != newLODLevel)
-            {
-                obj.lodGroup.ForceLOD(newLODLevel);
-                obj.currentLODLevel = newLODLevel;
-            }
-        }
-
-        // Only update if visibility changed
-        if (obj.isVisible != shouldBeVisible)
-        {
-            SetTreeVisibility(obj, shouldBeVisible);
-            obj.isVisible = shouldBeVisible;
-        }
-    }
-
-    private void SetTreeVisibility(CullableObject obj, bool visible)
-    {
-        if (disableTreeGameObjects && obj.isTree)
-        {
-            // Disable the entire GameObject for maximum performance
-            obj.gameObject.SetActive(visible);
-        }
-        else
-        {
-            // Just disable renderers
-            foreach (Renderer renderer in obj.renderers)
-            {
-                if (renderer != null)
-                {
-                    renderer.enabled = visible;
-                }
-            }
-        }
-    }
-
-    private void UpdateCulling()
-    {
-        if (cullableObjects.Count == 0) return;
-        if (cullingCamera == null) return;
-
-        // Calculate frustum planes once
-        if (useFrustumCulling)
-        {
-            frustumPlanes = GeometryUtility.CalculateFrustumPlanes(cullingCamera);
-        }
-
-        Vector3 cameraPos = cullingCamera.transform.position;
-        
-        // Process non-tree objects in batches
-        int objectsToProcess = Mathf.Min(maxObjectsPerFrame, cullableObjects.Count);
-        int startIndex = currentBatchIndex;
-        int endIndex = startIndex + objectsToProcess;
-        
-        if (endIndex >= cullableObjects.Count)
-        {
-            endIndex = cullableObjects.Count;
-            currentBatchIndex = 0;
-            culledCount = 0;
-        }
-        else
-        {
-            currentBatchIndex = endIndex;
-        }
-
-        for (int i = startIndex; i < endIndex; i++)
-        {
-            CullableObject obj = cullableObjects[i];
-            if (obj.gameObject == null) continue;
-
-            bool shouldBeVisible = true;
-            Vector3 objectCenter = obj.gameObject.transform.position;
-            
-            // Fast distance check first
-            if (useDistanceCulling)
-            {
-                float sqrDistance = (cameraPos - objectCenter).sqrMagnitude;
-                if (sqrDistance > cullingDistance * cullingDistance)
-                {
                     shouldBeVisible = false;
                 }
             }
-
-            // Frustum culling
-            if (shouldBeVisible && useFrustumCulling)
-            {
-                Bounds testBounds = new Bounds(objectCenter, obj.originalBounds.size);
-                if (!GeometryUtility.TestPlanesAABB(frustumPlanes, testBounds))
-                {
-                    shouldBeVisible = false;
-                }
-            }
-
-            // Only update if visibility changed
-            if (obj.isVisible != shouldBeVisible)
-            {
-                SetObjectVisibility(obj, shouldBeVisible);
-                obj.isVisible = shouldBeVisible;
-            }
-
-            if (!shouldBeVisible && startIndex == 0)
-            {
-                culledCount++;
-            }
         }
-    }
 
-    private void SetObjectVisibility(CullableObject obj, bool visible)
-    {
-        foreach (Renderer renderer in obj.renderers)
+        // --- APPLY STATE ---
+        // Only toggle if state changed (optimization)
+        if (item.isVisible != shouldBeVisible)
         {
-            if (renderer != null)
-            {
-                renderer.enabled = visible;
-            }
-        }
-    }
-
-    public void RegisterObject(GameObject obj, bool isTree = false)
-    {
-        if (obj == null) return;
-
-        Renderer[] renderers = obj.GetComponentsInChildren<Renderer>();
-        if (renderers.Length > 0)
-        {
-            LODGroup lodGroup = obj.GetComponent<LODGroup>();
-            CullableObject cullObj = new CullableObject
-            {
-                gameObject = obj,
-                renderers = renderers,
-                lodGroup = lodGroup,
-                bounds = CalculateBounds(renderers),
-                originalBounds = CalculateBounds(renderers),
-                isVisible = true,
-                isTree = isTree || obj.CompareTag("Tree"),
-                currentLODLevel = 0
-            };
+            item.isVisible = shouldBeVisible;
             
-            if (cullObj.isTree)
+            // Toggle renderers
+            for (int i = 0; i < item.renderers.Length; i++)
             {
-                treeObjects.Add(cullObj);
-                if (useSpatialPartitioning)
-                {
-                    cullObj.gridCell = GetGridCell(obj.transform.position);
-                    if (!spatialGrid.ContainsKey(cullObj.gridCell))
-                    {
-                        spatialGrid[cullObj.gridCell] = new List<CullableObject>();
-                    }
-                    spatialGrid[cullObj.gridCell].Add(cullObj);
-                }
-            }
-            else
-            {
-                cullableObjects.Add(cullObj);
+                if(item.renderers[i] != null) 
+                    item.renderers[i].enabled = shouldBeVisible;
             }
             
-            totalCount = cullableObjects.Count + treeObjects.Count;
-        }
-    }
-
-    public void UnregisterObject(GameObject obj)
-    {
-        cullableObjects.RemoveAll(c => c.gameObject == obj);
-        treeObjects.RemoveAll(c => c.gameObject == obj);
-        
-        // Also remove from spatial grid
-        foreach (var kvp in spatialGrid)
-        {
-            kvp.Value.RemoveAll(c => c.gameObject == obj);
-        }
-        
-        totalCount = cullableObjects.Count + treeObjects.Count;
-    }
-
-    // Force immediate full culling update (useful when teleporting)
-    public void ForceFullUpdate()
-    {
-        if (cullingCamera == null) return;
-        
-        Vector3 cameraPos = cullingCamera.transform.position;
-        frustumPlanes = GeometryUtility.CalculateFrustumPlanes(cullingCamera);
-        
-        foreach (CullableObject obj in treeObjects)
-        {
-            if (obj.gameObject == null) continue;
-            ProcessTreeObject(obj, cameraPos);
-        }
-        
-        foreach (CullableObject obj in cullableObjects)
-        {
-            if (obj.gameObject == null) continue;
-            
-            Vector3 objectCenter = obj.gameObject.transform.position;
-            float sqrDistance = (cameraPos - objectCenter).sqrMagnitude;
-            bool shouldBeVisible = sqrDistance <= cullingDistance * cullingDistance;
-            
-            if (shouldBeVisible && useFrustumCulling)
-            {
-                Bounds testBounds = new Bounds(objectCenter, obj.originalBounds.size);
-                shouldBeVisible = GeometryUtility.TestPlanesAABB(frustumPlanes, testBounds);
-            }
-            
-            if (obj.isVisible != shouldBeVisible)
-            {
-                SetObjectVisibility(obj, shouldBeVisible);
-                obj.isVisible = shouldBeVisible;
-            }
+            if (shouldBeVisible) visibleCount++;
+            else visibleCount--;
         }
     }
 
     private void OnGUI()
     {
-        if (!showDebugInfo) return;
-
-        int visibleTrees = 0;
-        foreach (var t in treeObjects) if (t.isVisible) visibleTrees++;
-
-        GUI.color = Color.white;
-        GUI.Label(new Rect(10, 90, 350, 20), $"Regular Objects: {cullableObjects.Count}");
-        GUI.Label(new Rect(10, 110, 350, 20), $"Trees Total: {treeObjects.Count}");
-        GUI.Label(new Rect(10, 130, 350, 20), $"Trees Visible: {visibleTrees}");
-        GUI.Label(new Rect(10, 150, 350, 20), $"Trees Culled: {treeObjects.Count - visibleTrees}");
-        GUI.Label(new Rect(10, 170, 350, 20), $"Spatial Grid Cells: {spatialGrid.Count}");
+        if (!showDebugStats) return;
+        GUI.color = Color.yellow;
+        GUILayout.BeginArea(new Rect(10, 10, 300, 150));
+        GUILayout.Label("--- CULLING STATS ---");
+        GUILayout.Label($"Total Objects: {trackedObjects.Count}");
+        GUILayout.Label($"Visible: {visibleCount}");
+        GUILayout.Label($"Culled: {trackedObjects.Count - visibleCount}");
+        GUILayout.Label($"Processing: {objectsProcessedPerFrame}/frame");
+        GUILayout.EndArea();
     }
 }
