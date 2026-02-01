@@ -55,7 +55,7 @@ MonoBehaviour:
   active: 1
   postExposure:
     m_OverrideState: 1
-    m_Value: -0.08
+    m_Value: -0.69
   contrast:
     m_OverrideState: 1
     m_Value: 75
