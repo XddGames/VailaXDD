@@ -1,13 +1,13 @@
 using UnityEngine;
 using TMPro;
 using Photon.Pun;
+using Photon.Realtime;
+using ExitGames.Client.Photon;
 
 public class Timer : MonoBehaviour
 {
-    // The server time when the game started (synced across all clients)
-    private static double gameStartTime = -1;
-    private static bool gameStarted = false;
-
+    private const string GAME_START_TIME_KEY = "GameStartTime";
+    
     [SerializeField] private TextMeshProUGUI timerText;
 
     void Start()
@@ -33,17 +33,30 @@ public class Timer : MonoBehaviour
             timerText.text = "00:00";
         }
         
+        // Check if timer already started (for late joiners)
+        if (PhotonNetwork.IsConnectedAndReady && PhotonNetwork.CurrentRoom != null)
+        {
+            if (PhotonNetwork.CurrentRoom.CustomProperties.ContainsKey(GAME_START_TIME_KEY))
+            {
+                Debug.Log($"[Timer] Late joiner - timer already running");
+            }
+        }
+        
         // Auto-start when the scene loads
         Invoke(nameof(TryAutoStart), 1.0f);
     }
     
     private void TryAutoStart()
     {
-        if (!gameStarted && PhotonNetwork.IsConnectedAndReady)
+        if (PhotonNetwork.IsConnectedAndReady)
         {
-            Begin();
+            // Check if game already started (from room properties)
+            if (!IsGameStarted())
+            {
+                Begin();
+            }
         }
-        else if (!gameStarted)
+        else
         {
             // Retry if network not ready yet
             Invoke(nameof(TryAutoStart), 0.5f);
@@ -55,18 +68,40 @@ public class Timer : MonoBehaviour
     /// </summary>
     public void Begin()
     {
-        if (gameStarted) return;
+        if (IsGameStarted()) return;
         
-        // Use Photon's synchronized server time
-        gameStartTime = PhotonNetwork.Time;
-        gameStarted = true;
+        // Only master client sets the start time
+        if (PhotonNetwork.IsMasterClient)
+        {
+            // Use Photon's synchronized server time and store in room properties
+            double startTime = PhotonNetwork.Time;
+            
+            Hashtable props = new Hashtable();
+            props[GAME_START_TIME_KEY] = startTime;
+            PhotonNetwork.CurrentRoom.SetCustomProperties(props);
+            
+            Debug.Log($"[Timer] Master started timer at server time: {startTime}");
+        }
+    }
+    
+    private bool IsGameStarted()
+    {
+        if (PhotonNetwork.CurrentRoom == null) return false;
+        return PhotonNetwork.CurrentRoom.CustomProperties.ContainsKey(GAME_START_TIME_KEY);
+    }
+    
+    private double GetGameStartTime()
+    {
+        if (PhotonNetwork.CurrentRoom == null) return -1;
+        if (!PhotonNetwork.CurrentRoom.CustomProperties.ContainsKey(GAME_START_TIME_KEY)) return -1;
         
-        Debug.Log($"[Timer] Started at server time: {gameStartTime}");
+        object startTimeObj = PhotonNetwork.CurrentRoom.CustomProperties[GAME_START_TIME_KEY];
+        return startTimeObj != null ? (double)startTimeObj : -1;
     }
 
     void Update()
     {
-        if (gameStarted && gameStartTime > 0)
+        if (IsGameStarted())
         {
             UpdateTimerDisplay();
         }
@@ -75,6 +110,9 @@ public class Timer : MonoBehaviour
     void UpdateTimerDisplay()
     {
         if (timerText == null) return;
+
+        double gameStartTime = GetGameStartTime();
+        if (gameStartTime <= 0) return;
 
         // Calculate elapsed time using Photon's synchronized server time
         double elapsedTime = PhotonNetwork.Time - gameStartTime;
@@ -93,7 +131,8 @@ public class Timer : MonoBehaviour
     /// </summary>
     public float GetElapsedTime()
     {
-        if (!gameStarted || gameStartTime <= 0) return 0f;
+        double gameStartTime = GetGameStartTime();
+        if (gameStartTime <= 0) return 0f;
         return (float)(PhotonNetwork.Time - gameStartTime);
     }
     
@@ -102,7 +141,12 @@ public class Timer : MonoBehaviour
     /// </summary>
     public static void ResetTimer()
     {
-        gameStarted = false;
-        gameStartTime = -1;
+        if (PhotonNetwork.IsMasterClient && PhotonNetwork.CurrentRoom != null)
+        {
+            Hashtable props = new Hashtable();
+            props[GAME_START_TIME_KEY] = null;
+            PhotonNetwork.CurrentRoom.SetCustomProperties(props);
+            Debug.Log("[Timer] Reset by master client");
+        }
     }
 }
