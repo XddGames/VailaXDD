@@ -806,7 +806,7 @@ MeshCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 0
+  m_Enabled: 1
   serializedVersion: 5
   m_Convex: 0
   m_CookingOptions: 30
@@ -876,6 +876,9 @@ MonoBehaviour:
   jumpStaminaCost: 15
   mouseSensitivity: 0.2
   maxLookAngle: 75.7
+  headBone: {fileID: 0}
+  deathCameraOffset: {x: 0, y: 0.1, z: 0.1}
+  deathCameraFollowSpeed: 10
   interactRange: 10
   generatorLayerMask:
     serializedVersion: 2
