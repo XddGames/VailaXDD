@@ -20,6 +20,8 @@ public class TerrainTreeGenerator : MonoBehaviour
     [SerializeField] private int avoidTextureIndex = -1; 
     [Tooltip("If the texture weight is higher than this, don't spawn. (0.5 = 50% opacity)")]
     [SerializeField] private float maxTextureWeight = 0.5f;
+    [Tooltip("Radius around spawn point to check for avoided texture. Prevents trees at edges.")]
+    [SerializeField] private float textureCheckRadius = 2f;
 
     [Header("Terrain Bounds")]
     [SerializeField] private Vector2 minBounds = Vector2.zero; // Percentage (0-1) of terrain
@@ -109,10 +111,38 @@ public class TerrainTreeGenerator : MonoBehaviour
                 // Check texture (e.g., avoid roads)
                 if (avoidTextureIndex >= 0)
                 {
-                    float textureWeight = GetTextureWeight(terrain, hit.point, avoidTextureIndex);
-                    if (textureWeight > maxTextureWeight)
+                    bool tooCloseToTexture = false;
+                    
+                    // Check center point
+                    if (GetTextureWeight(terrain, hit.point, avoidTextureIndex) > maxTextureWeight)
                     {
-                        continue; // Too much of the avoided texture here
+                        tooCloseToTexture = true;
+                    }
+                    else if (textureCheckRadius > 0)
+                    {
+                        // Check points around the spawn position
+                        Vector3[] checkOffsets = new Vector3[]
+                        {
+                            new Vector3(textureCheckRadius, 0, 0),
+                            new Vector3(-textureCheckRadius, 0, 0),
+                            new Vector3(0, 0, textureCheckRadius),
+                            new Vector3(0, 0, -textureCheckRadius)
+                        };
+                        
+                        foreach (Vector3 offset in checkOffsets)
+                        {
+                            Vector3 checkPoint = hit.point + offset;
+                            if (GetTextureWeight(terrain, checkPoint, avoidTextureIndex) > maxTextureWeight)
+                            {
+                                tooCloseToTexture = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (tooCloseToTexture)
+                    {
+                        continue; // Too close to avoided texture
                     }
                 }
 
@@ -165,6 +195,9 @@ public class TerrainTreeGenerator : MonoBehaviour
                 // Random scale
                 float scale = Random.Range(minScale, maxScale);
                 tree.transform.localScale = Vector3.one * scale;
+
+                // Add MeshColliders to tree meshes
+                AddMeshColliders(tree);
 
                 // Optimization: Force LOD level if enabled
                 if (forceLODLevel)
@@ -274,6 +307,23 @@ public class TerrainTreeGenerator : MonoBehaviour
         foreach (Transform child in obj.transform)
         {
             SetLayerRecursively(child.gameObject, layer);
+        }
+    }
+
+    /// <summary>
+    /// Adds MeshCollider components to all meshes in the tree.
+    /// </summary>
+    private void AddMeshColliders(GameObject tree)
+    {
+        MeshFilter[] meshFilters = tree.GetComponentsInChildren<MeshFilter>();
+        foreach (MeshFilter meshFilter in meshFilters)
+        {
+            // Skip if already has a collider
+            if (meshFilter.gameObject.GetComponent<Collider>() != null)
+                continue;
+
+            MeshCollider meshCollider = meshFilter.gameObject.AddComponent<MeshCollider>();
+            meshCollider.sharedMesh = meshFilter.sharedMesh;
         }
     }
 
