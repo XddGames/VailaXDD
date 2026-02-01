@@ -270,6 +270,9 @@ MonoBehaviour:
   gravestoneLayerMask:
     serializedVersion: 2
     m_Bits: 256
+  paperLayerMask:
+    serializedVersion: 2
+    m_Bits: 8192
   toggleSpeed: 25
 --- !u!114 &6725692040602590194
 MonoBehaviour:
