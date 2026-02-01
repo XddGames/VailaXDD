@@ -67,6 +67,7 @@ MonoBehaviour:
   - RPC_SyncJumpscare
   - RPC_SyncPosition
   - RPC_InitializeMinigame
+  - RPC_InitializeMinigameWithNames
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 0

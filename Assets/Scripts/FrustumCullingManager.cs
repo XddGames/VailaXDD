@@ -51,7 +51,7 @@ public class FrustumCullingManager : MonoBehaviour
     private void Start()
     {
         // Delay slightly to ensure network players are spawned
-        Invoke(nameof(Initialize), 0.5f);
+        Invoke(nameof(Initialize), 1.0f);
     }
 
     private void Initialize()
@@ -60,18 +60,22 @@ public class FrustumCullingManager : MonoBehaviour
         
         // Scan the scene for objects
         ScanForObjects();
+        
+        Debug.Log($"[Culling] Initialized. Camera: {(cullingCamera != null ? cullingCamera.name : "NULL")}, Objects: {trackedObjects.Count}");
     }
 
     private void FindLocalCamera()
     {
         // 1. Try finding by Photon View (Most accurate for Multiplayer)
         var photonViews = FindObjectsByType<PhotonView>(FindObjectsSortMode.None);
+        Debug.Log($"[Culling] Found {photonViews.Length} PhotonViews");
+        
         foreach (var pv in photonViews)
         {
             if (pv.IsMine)
             {
                 // Find an ENABLED camera (could be player cam or spectator cam)
-                Camera[] cams = pv.GetComponentsInChildren<Camera>();
+                Camera[] cams = pv.GetComponentsInChildren<Camera>(true); // Include inactive
                 foreach (Camera cam in cams)
                 {
                     if (cam.enabled)
@@ -88,6 +92,7 @@ public class FrustumCullingManager : MonoBehaviour
         if (Camera.main != null && Camera.main.enabled)
         {
             cullingCamera = Camera.main;
+            Debug.Log($"[Culling] Using Camera.main: {cullingCamera.name}");
             return;
         }
         
@@ -103,8 +108,9 @@ public class FrustumCullingManager : MonoBehaviour
             }
         }
 
-        Debug.LogError("[Culling] CRITICAL: No Camera found!");
-        this.enabled = false;
+        Debug.LogError("[Culling] CRITICAL: No Camera found! Will retry...");
+        // Don't disable - retry next frame
+        Invoke(nameof(FindLocalCamera), 0.5f);
     }
 
     [ContextMenu("Rescan Scene")]
