@@ -723,16 +723,11 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             stream.SendNext(velocity);
             stream.SendNext((int)currentState);
             
-            // Sync animation parameters
+            // Sync animation state directly (more reliable than parameters)
             if (playerAnimator != null)
             {
-                stream.SendNext(playerAnimator.GetFloat(AnimSpeed));
-                stream.SendNext(playerAnimator.GetBool(AnimIsGrounded));
-                stream.SendNext(playerAnimator.GetBool(AnimIsJumping));
-                stream.SendNext(playerAnimator.GetBool(AnimIsDead));
-                stream.SendNext(playerAnimator.GetBool(AnimIsReviving));
-                stream.SendNext(playerAnimator.GetInteger(AnimEmote));
-                stream.SendNext(playerAnimator.GetBool(AnimIsSprinting));
+                stream.SendNext(lastAnimState); // Send the actual animation state hash
+                stream.SendNext(playerAnimator.speed); // Send animator speed (for death freeze)
             }
         }
         else
@@ -751,24 +746,21 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             float lag = Mathf.Abs((float)(PhotonNetwork.Time - info.SentServerTime));
             networkPosition += networkVelocity * lag;
             
-            // Receive and apply animation parameters for remote players
+            // Receive and apply animation state for remote players
             if (playerAnimator != null)
             {
-                float netSpeed = (float)stream.ReceiveNext();
-                bool netIsGrounded = (bool)stream.ReceiveNext();
-                bool netIsJumping = (bool)stream.ReceiveNext();
-                bool netIsDead = (bool)stream.ReceiveNext();
-                bool netIsReviving = (bool)stream.ReceiveNext();
-                int netEmote = (int)stream.ReceiveNext();
-                bool netIsSprinting = (bool)stream.ReceiveNext();
+                int netAnimState = (int)stream.ReceiveNext();
+                float netAnimSpeed = (float)stream.ReceiveNext();
                 
-                playerAnimator.SetFloat(AnimSpeed, netSpeed);
-                playerAnimator.SetBool(AnimIsGrounded, netIsGrounded);
-                playerAnimator.SetBool(AnimIsJumping, netIsJumping);
-                playerAnimator.SetBool(AnimIsDead, netIsDead);
-                playerAnimator.SetBool(AnimIsReviving, netIsReviving);
-                playerAnimator.SetInteger(AnimEmote, netEmote);
-                playerAnimator.SetBool(AnimIsSprinting, netIsSprinting);
+                // Apply animator speed (for death freeze)
+                playerAnimator.speed = netAnimSpeed;
+                
+                // Only change animation if state is different
+                if (netAnimState != 0 && netAnimState != lastAnimState)
+                {
+                    playerAnimator.CrossFade(netAnimState, 0.15f);
+                    lastAnimState = netAnimState;
+                }
             }
         }
     }
