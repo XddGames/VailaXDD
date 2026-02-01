@@ -91,6 +91,22 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
     [SerializeField] private Animator animator;
     private int speedHash;
 
+    [Header("Jumpscare Event")]
+    [SerializeField] private bool enableJumpscareEvent = true;
+    [SerializeField] private float jumpscareChancePerMinute = 0.05f; // 5% chance per minute
+    [SerializeField] private float jumpscareMinInterval = 60f; // Minimum seconds between jumpscares
+    [SerializeField] private float jumpscareReactionTime = 2.5f; // Seconds player has to put on mask
+    [SerializeField] private float jumpscareDistance = 3f; // How close the monster appears
+    [SerializeField] private AudioClip jumpscareSound; // Optional scary sound
+    [SerializeField] private AudioSource jumpscareAudioSource;
+    
+    private float jumpscareTimer = 0f;
+    private float lastJumpscareTime = -999f;
+    private bool jumpscareActive = false;
+    private Transform jumpscareTarget;
+    private float jumpscareCountdown;
+    private Vector3 preJumpscarePosition;
+
     private float[] suspicionLevels;
     private float teleportTimer;
     private Transform target;
@@ -263,6 +279,20 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
             return; // Other clients just see the synced position/rotation
         }
 
+        // Handle active jumpscare
+        if (jumpscareActive)
+        {
+            UpdateJumpscare();
+            return; // Don't do normal AI during jumpscare
+        }
+        
+        // DEBUG: Press "." to force trigger jumpscare
+        if (Input.GetKeyDown(KeyCode.Period))
+        {
+            Debug.Log("<color=yellow>[DEBUG] Forcing jumpscare!</color>");
+            TryStartJumpscare();
+        }
+
         if (Time.frameCount % 300 == 0) // Every 5 seconds at 60fps
         {
             FindAllPlayers();
@@ -272,6 +302,12 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         if (enableScaling && PhotonNetwork.IsMasterClient)
         {
             UpdateDifficultyScaling();
+        }
+        
+        // Check for random jumpscare event
+        if (enableJumpscareEvent)
+        {
+            UpdateJumpscareChance();
         }
 
         if (Players == null || Players.Count == 0) return;
@@ -1130,6 +1166,223 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
             Gizmos.DrawSphere(p, 0.5f);
     }
 
+    // ===== JUMPSCARE EVENT =====
+    void UpdateJumpscareChance()
+    {
+        // Don't trigger during chase or if recently triggered
+        if (state == EnemyState.Chasing) return;
+        if (Time.time - lastJumpscareTime < jumpscareMinInterval) return;
+        
+        jumpscareTimer += Time.deltaTime;
+        
+        // Check chance every second
+        if (jumpscareTimer >= 1f)
+        {
+            jumpscareTimer = 0f;
+            
+            // Roll for jumpscare (chance per minute converted to per second)
+            float chancePerSecond = jumpscareChancePerMinute / 60f;
+            if (Random.value < chancePerSecond)
+            {
+                TryStartJumpscare();
+            }
+        }
+    }
+    
+    void TryStartJumpscare()
+    {
+        // Find a valid target (alive player)
+        Transform validTarget = null;
+        PlayerController targetPC = null;
+        
+        for (int i = 0; i < Players.Count; i++)
+        {
+            if (Players[i] != null && i < playerControllers.Count && playerControllers[i] != null)
+            {
+                PlayerController pc = playerControllers[i];
+                if (pc.GetCurrentState() == PlayerState.Alive)
+                {
+                    // Don't jumpscare if player already has mask on
+                    if (pc.playerMask != null && !pc.playerMask.HasMaskOn)
+                    {
+                        validTarget = Players[i];
+                        targetPC = pc;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (validTarget == null) return;
+        
+        Debug.Log($"<color=red>[JUMPSCARE] Starting jumpscare on {validTarget.name}!</color>");
+        
+        // Store current position to return to
+        preJumpscarePosition = transform.position;
+        
+        // Teleport in front of player
+        Vector3 jumpscarePos = validTarget.position + validTarget.forward * jumpscareDistance;
+        
+        // Try to find valid NavMesh position
+        NavMeshHit hit;
+        if (NavMesh.SamplePosition(jumpscarePos, out hit, 5f, NavMesh.AllAreas))
+        {
+            jumpscarePos = hit.position;
+        }
+        
+        // Warp to position
+        if (agent != null)
+        {
+            agent.Warp(jumpscarePos);
+            agent.isStopped = true;
+        }
+        else
+        {
+            transform.position = jumpscarePos;
+        }
+        
+        // Face the player
+        Vector3 lookDir = validTarget.position - transform.position;
+        lookDir.y = 0;
+        if (lookDir != Vector3.zero)
+        {
+            transform.rotation = Quaternion.LookRotation(lookDir);
+        }
+        
+        // Play jumpscare sound
+        if (jumpscareSound != null)
+        {
+            if (jumpscareAudioSource != null)
+            {
+                jumpscareAudioSource.PlayOneShot(jumpscareSound);
+            }
+            else
+            {
+                AudioSource.PlayClipAtPoint(jumpscareSound, transform.position);
+            }
+        }
+        
+        // Start the jumpscare
+        jumpscareActive = true;
+        jumpscareTarget = validTarget;
+        jumpscareCountdown = jumpscareReactionTime;
+        lastJumpscareTime = Time.time;
+        
+        // Sync to other clients
+        if (PhotonNetwork.IsConnected)
+        {
+            photonView.RPC("RPC_SyncJumpscare", RpcTarget.Others, jumpscarePos, validTarget.GetComponent<PhotonView>().ViewID);
+        }
+    }
+    
+    [PunRPC]
+    void RPC_SyncJumpscare(Vector3 position, int targetViewID)
+    {
+        // Non-master clients see the jumpscare visually
+        transform.position = position;
+        
+        // Play sound locally
+        if (jumpscareSound != null)
+        {
+            if (jumpscareAudioSource != null)
+            {
+                jumpscareAudioSource.PlayOneShot(jumpscareSound);
+            }
+            else
+            {
+                AudioSource.PlayClipAtPoint(jumpscareSound, transform.position);
+            }
+        }
+    }
+    
+    void UpdateJumpscare()
+    {
+        if (jumpscareTarget == null)
+        {
+            EndJumpscare(false);
+            return;
+        }
+        
+        // Keep looking at player
+        Vector3 lookDir = jumpscareTarget.position - transform.position;
+        lookDir.y = 0;
+        if (lookDir != Vector3.zero)
+        {
+            transform.rotation = Quaternion.LookRotation(lookDir);
+        }
+        
+        jumpscareCountdown -= Time.deltaTime;
+        
+        // Check if player put on mask
+        PlayerController pc = jumpscareTarget.GetComponent<PlayerController>();
+        if (pc != null && pc.playerMask != null && pc.playerMask.HasMaskOn)
+        {
+            // Player saved themselves!
+            Debug.Log("<color=green>[JUMPSCARE] Player put on mask in time! Monster retreating...</color>");
+            EndJumpscare(true);
+            return;
+        }
+        
+        // Time ran out - kill the player
+        if (jumpscareCountdown <= 0)
+        {
+            Debug.Log("<color=red>[JUMPSCARE] Player failed to put on mask! Killing player...</color>");
+            
+            PhotonView targetPV = jumpscareTarget.GetComponent<PhotonView>();
+            if (targetPV != null)
+            {
+                targetPV.RPC(nameof(PlayerController.RPC_KillPlayer), RpcTarget.All);
+            }
+            
+            EndJumpscare(false);
+        }
+    }
+    
+    void EndJumpscare(bool playerSurvived)
+    {
+        jumpscareActive = false;
+        jumpscareTarget = null;
+        
+        if (playerSurvived)
+        {
+            // Teleport back away from player
+            if (agent != null)
+            {
+                agent.Warp(preJumpscarePosition);
+            }
+            else
+            {
+                transform.position = preJumpscarePosition;
+            }
+            
+            // Sync position
+            if (PhotonNetwork.IsConnected)
+            {
+                photonView.RPC("RPC_SyncPosition", RpcTarget.Others, preJumpscarePosition);
+            }
+        }
+        
+        // Resume normal AI
+        if (agent != null)
+        {
+            agent.isStopped = false;
+        }
+        
+        // Reset to teleporting state
+        state = EnemyState.Teleporting;
+        teleportTimer = 0f;
+    }
+    
+    [PunRPC]
+    void RPC_SyncPosition(Vector3 position)
+    {
+        transform.position = position;
+        if (agent != null && agent.isOnNavMesh)
+        {
+            agent.Warp(position);
+        }
+    }
+
     void OnGUI()
     {
         if (!showDebug) return;
@@ -1138,6 +1391,14 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         GUI.color = Color.white;
         GUI.Label(new Rect(10, 10, 300, 20), $"State: {state}");
         GUI.Label(new Rect(10, 30, 300, 20), $"Suspicion: {maxSus:F2}");
+        
+        // Show jumpscare info
+        if (jumpscareActive)
+        {
+            GUI.color = Color.red;
+            GUI.Label(new Rect(10, 110, 300, 20), $"JUMPSCARE! Time left: {jumpscareCountdown:F1}s");
+            GUI.color = Color.white;
+        }
         
         // Show difficulty scaling info
         if (enableScaling)
