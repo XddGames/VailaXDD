@@ -420661,7 +420661,6 @@ MonoBehaviour:
     m_Bits: 67108864
   ignoreTags:
   - Player
-  - LocalPlayer
   - MainCamera
   autoFindPlayerCamera: 1
   cullingCamera: {fileID: 0}
