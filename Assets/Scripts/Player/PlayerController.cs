@@ -239,7 +239,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     private void HandlePaperInteraction()
     {
-        Collider[] hits = Physics.OverlapSphere(transform.position, interactRange, paperLayerMask);
+        Collider[] hits = Physics.OverlapSphere(transform.position, 4f, paperLayerMask);
             
         foreach (Collider hit in hits)
         {
@@ -402,7 +402,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         
         if (Input.GetKeyDown(KeyCode.G)) // mask
         {
-            playerMask.SetMaskState(!playerMask.HasMaskOn);
+            ToggleMask();
         }
 
         switch (currentState)
@@ -416,6 +416,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 HandleStamina();
                 HandleRevive();
                 HandleGenerator();
+                HandlePaperInteraction();
                 HandleGraveyardInteraction();
                 HandleEmoteInput();
                 break;
@@ -1262,14 +1263,14 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             int total = currentGraveyardMinigame.GetTotalGravestones();
             string nextName = currentGraveyardMinigame.GetNextExpectedName();
             
-            GUI.Box(new Rect(Screen.width / 2 - 150, 20, 300, 60), "");
+            /*GUI.Box(new Rect(Screen.width / 2 - 150, 20, 300, 60), "");
             GUI.Label(new Rect(Screen.width / 2 - 140, 30, 280, 20), $"Cemitério: {progress}/{total}");
-            GUI.Label(new Rect(Screen.width / 2 - 140, 50, 280, 20), $"Próximo: {nextName}");
+            GUI.Label(new Rect(Screen.width / 2 - 140, 50, 280, 20), $"Próximo: {nextName}");*/
         }
 
         if (currentGraveyardMinigame != null && currentGraveyardMinigame.IsMinigameCompleted())
         {
-            GUI.Label(new Rect(Screen.width / 2 - 100, 100, 200, 30), "MINIGAME COMPLETO!");
+            //GUI.Label(new Rect(Screen.width / 2 - 100, 100, 200, 30), "MINIGAME COMPLETO!");
         }
             
         if (playerBeingRevived != null)

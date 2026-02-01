@@ -25,7 +25,6 @@ public class PickupFlashlight : MonoBehaviour
 
     private void Start()
     {
-        Debug.Log($"[PickupFlashlight] START - Script initialized on {gameObject.name}");
     }
 
     private void Update()
@@ -42,7 +41,6 @@ public class PickupFlashlight : MonoBehaviour
         {
             if (Input.GetKeyDown(pickupKey))
             {
-                Debug.Log($"[PickupFlashlight] E pressed, attempting pickup");
                 isPickedUp = true;
                 HidePrompt();
                 nearbyPlayer.PickupFlashlight(gameObject);
@@ -57,7 +55,6 @@ public class PickupFlashlight : MonoBehaviour
         // Find all players and check distance
         InventoryManager[] allPlayers = FindObjectsOfType<InventoryManager>();
         
-        Debug.Log($"[PickupFlashlight] Found {allPlayers.Length} InventoryManagers");
         
         InventoryManager closestPlayer = null;
         float closestDistance = pickupRange;
@@ -68,12 +65,10 @@ public class PickupFlashlight : MonoBehaviour
             if (pv != null && pv.IsMine)
             {
                 float distance = Vector3.Distance(transform.position, player.transform.position);
-                Debug.Log($"[PickupFlashlight] Distance to local player: {distance:F2}, range: {pickupRange}");
                 if (distance < closestDistance)
                 {
                     // Check if player already has flashlight
                     bool hasFlashlight = player.HasItem(InventoryItem.ItemType.Flashlight);
-                    Debug.Log($"[PickupFlashlight] Player has flashlight: {hasFlashlight}");
                     if (!hasFlashlight)
                     {
                         closestPlayer = player;
@@ -86,7 +81,6 @@ public class PickupFlashlight : MonoBehaviour
         // Player entered range
         if (closestPlayer != null && !playerInRange)
         {
-            Debug.Log("[PickupFlashlight] Player entered range - showing prompt");
             playerInRange = true;
             nearbyPlayer = closestPlayer;
             ShowPrompt($"Press E to pick up {itemName}");
@@ -163,8 +157,6 @@ public class PickupFlashlight : MonoBehaviour
         textRect.offsetMax = Vector2.zero;
 
         DontDestroyOnLoad(promptCanvas);
-        
-        Debug.Log("PickupFlashlight: Created prompt UI");
     }
 
     private void OnDestroy()

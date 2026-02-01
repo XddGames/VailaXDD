@@ -14,7 +14,7 @@ OcclusionCullingSettings:
 RenderSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 10
-  m_Fog: 0
+  m_Fog: 1
   m_FogColor: {r: 0.3679245, g: 0.3679245, b: 0.3679245, a: 1}
   m_FogMode: 1
   m_FogDensity: 0.08
@@ -62281,7 +62281,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &282457867
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -146484,7 +146484,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gen1: {fileID: 1132270423}
   gen2: {fileID: 715693546}
-  hospitalLightsParent: {fileID: 0}
+  hospitalLightsParent: {fileID: 21825376}
 --- !u!4 &649170097
 Transform:
   m_ObjectHideFlags: 0
@@ -191127,6 +191127,7 @@ GameObject:
   m_Component:
   - component: {fileID: 842009936}
   - component: {fileID: 842009935}
+  - component: {fileID: 842009937}
   m_Layer: 0
   m_Name: GraveyardMinigame
   m_TagString: Untagged
@@ -191182,6 +191183,28 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &842009937
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 842009934}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa584fbee541324448dd18d8409c7a41, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ObservedComponentsFoldoutOpen: 1
+  Group: 0
+  prefixField: -1
+  Synchronization: 3
+  OwnershipTransfer: 0
+  observableSearch: 2
+  ObservedComponents: []
+  sceneViewId: 3
+  InstantiationId: 0
+  isRuntimeInstantiated: 0
 --- !u!1 &843080573
 GameObject:
   m_ObjectHideFlags: 0
@@ -241361,7 +241384,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 025a1e5038867a24ba881f55116df2bb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  displayImage: {fileID: 0}
 --- !u!1 &1059490497
 GameObject:
   m_ObjectHideFlags: 0
@@ -277647,7 +277669,7 @@ Transform:
   m_GameObject: {fileID: 1208509190}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 383.383, y: 15.09, z: 274.02307}
+  m_LocalPosition: {x: 383.383, y: 15.09, z: 279.89}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -420516,7 +420538,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1842744355}
-  - component: {fileID: 1842744354}
   - component: {fileID: 1842744356}
   - component: {fileID: 1842744357}
   m_Layer: 0
@@ -420526,105 +420547,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1842744354
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1842744353}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2900fd9575671a04e9003185b0496a36, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  terrain: {fileID: 1691299294}
-  treePrefabs:
-  - {fileID: 919132149155446097, guid: 5ca70da4a80a8e543954ade89dd28985, type: 3}
-  - {fileID: 919132149155446097, guid: c844a5f259f54c94c9c740240a782ea1, type: 3}
-  - {fileID: 919132149155446097, guid: 18c57effdf22dd9448438807a248018b, type: 3}
-  - {fileID: 919132149155446097, guid: e853faca644386a478f9302aaea5460d, type: 3}
-  - {fileID: 919132149155446097, guid: 13a48c8be7752964c905ee53f5906d2c, type: 3}
-  - {fileID: 919132149155446097, guid: 52020fc92dd8f4945bee7e4edc5dca1a, type: 3}
-  - {fileID: 919132149155446097, guid: ab951b65db1053a4c989b5a731a419ac, type: 3}
-  - {fileID: 919132149155446097, guid: 5d9dea9d19514144d8267117a30f5238, type: 3}
-  - {fileID: 919132149155446097, guid: 77e88a2711eb1f644aa95c3b2ec4aa62, type: 3}
-  - {fileID: 919132149155446097, guid: 317385183d6445040a5e66ffaac0c49d, type: 3}
-  - {fileID: 919132149155446097, guid: 85920105a9f41354299f1f1860ee7f84, type: 3}
-  - {fileID: 919132149155446097, guid: b6b9fdfbfa588f94b9fdc07cfc639793, type: 3}
-  - {fileID: 919132149155446097, guid: 79306646ba2dc344d9f404d8530bb9ed, type: 3}
-  - {fileID: 919132149155446097, guid: 8f7bd345f493d71479478b7f24082c22, type: 3}
-  - {fileID: 919132149155446097, guid: a98967dc3e59c9b4f8865d06ab084c26, type: 3}
-  - {fileID: 919132149155446097, guid: 7b7f07f8aa8bc65479402e14357071c9, type: 3}
-  - {fileID: 919132149155446097, guid: d95e8a98daf2c6b41bef28afa47e337c, type: 3}
-  - {fileID: 919132149155446097, guid: 04ca924a6df96d24e8901bed73a8c036, type: 3}
-  - {fileID: 919132149155446097, guid: 98001f76f2dc38842af823a226778cab, type: 3}
-  - {fileID: 919132149155446097, guid: 8c78d66a3f98a384d8f9d72bcf17ed25, type: 3}
-  - {fileID: 919132149155446097, guid: 85b9985509d0ef44e90876b76b515b36, type: 3}
-  - {fileID: 919132149155446097, guid: eb7fea14051e79e439993a3a67c3e2f5, type: 3}
-  - {fileID: 919132149155446097, guid: 2c53b2ef625e10a448bb65363aeae588, type: 3}
-  - {fileID: 919132149155446097, guid: 076aa9378f7acca4fb61c9f9afa2dff9, type: 3}
-  - {fileID: 919132149155446097, guid: 95ad26f6198ab0141939fbb21be1383f, type: 3}
-  - {fileID: 919132149155446097, guid: 978479f8af7673f4d9e81b52fc82ea40, type: 3}
-  - {fileID: 919132149155446097, guid: c6c19f36d3f90d24cab6e436308ee4eb, type: 3}
-  - {fileID: 919132149155446097, guid: 982eb6d3ccbba054cabe40a26bf5b823, type: 3}
-  - {fileID: 919132149155446097, guid: 19b97e4fc33a38043b99fe3d1137b628, type: 3}
-  - {fileID: 919132149155446097, guid: ee5360d29d8a1a64fba2ab934d4c6002, type: 3}
-  - {fileID: 919132149155446097, guid: 5721972f383309c4b97a2d7fc24c14db, type: 3}
-  - {fileID: 919132149155446097, guid: 56160a07de51dd940a8b3ec187734752, type: 3}
-  - {fileID: 919132149155446097, guid: 9e34d64028c26d34fbf3616ebb712fe6, type: 3}
-  - {fileID: 919132149155446097, guid: e2c6103c681d4dc45bea2efea06339bf, type: 3}
-  - {fileID: 919132149155446097, guid: be633c3754982b1498d933d9bf1d9d40, type: 3}
-  - {fileID: 919132149155446097, guid: 82d1900886d4f6c47978a3c5875a1023, type: 3}
-  - {fileID: 919132149155446097, guid: 24a1885f06f86e64985ff928cc631ca8, type: 3}
-  - {fileID: 919132149155446097, guid: 5a3481564395abc4c9c4a5430bc67149, type: 3}
-  - {fileID: 919132149155446097, guid: f2dede8ad1da90d4ea6b548a9a20e499, type: 3}
-  - {fileID: 919132149155446097, guid: 2bd4d16fef8960f46b2eddcac268450c, type: 3}
-  - {fileID: 919132149155446097, guid: 19abebf184f809c40abc1f85b215fd15, type: 3}
-  - {fileID: 919132149155446097, guid: 2b8fd0f96be3f0f4487d8dec966a9a79, type: 3}
-  - {fileID: 919132149155446097, guid: a836d8760b4608e4e930f1ccdffd110a, type: 3}
-  - {fileID: 919132149155446097, guid: 953f799b7b9c75e4fa15ab74469f5918, type: 3}
-  - {fileID: 919132149155446097, guid: 1d47269de49e79141ab9679d12937955, type: 3}
-  - {fileID: 919132149155446097, guid: 1871955f7f0bfa041b5f5149bdafda32, type: 3}
-  - {fileID: 919132149155446097, guid: db6b1d5d0c979f84c8e547e1d1efe12d, type: 3}
-  - {fileID: 919132149155446097, guid: c43e55289c52e214ba52be8de55fbc9c, type: 3}
-  - {fileID: 919132149155446097, guid: ef1d5486fe96e2446800f278e21b0e55, type: 3}
-  - {fileID: 919132149155446097, guid: b88dabdf0007a374099a6a3371cc0e31, type: 3}
-  - {fileID: 919132149155446097, guid: 98d84376d107c1d4191ac294fd80120c, type: 3}
-  - {fileID: 919132149155446097, guid: 6e4cdf383ddf64349acbda2a84e6b460, type: 3}
-  - {fileID: 919132149155446097, guid: 6bfb42cb684d6bd46a723f677de06a5a, type: 3}
-  - {fileID: 919132149155446097, guid: 0610d292f5541134eab05cab909fe2c5, type: 3}
-  - {fileID: 919132149155446097, guid: efa8f2a723415b24fab4e78ba4db1f43, type: 3}
-  - {fileID: 919132149155446097, guid: 1a0b02deedb278c449ff7b64a733d477, type: 3}
-  - {fileID: 919132149155446097, guid: 438a537ac6cc9b34fb8098dcf789c7b2, type: 3}
-  - {fileID: 919132149155446097, guid: 13ca4d106a8dd7f468a3e62f0459e00a, type: 3}
-  - {fileID: 919132149155446097, guid: a0e7590d702d2a2449e990247284dd3f, type: 3}
-  - {fileID: 919132149155446097, guid: 4f291fdf93e90034f807bcabe42738db, type: 3}
-  treeCount: 500
-  minScale: 5
-  maxScale: 10
-  minDistance: 5
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 8
-  avoidTextureIndex: 1
-  maxTextureWeight: 0.8
-  textureCheckRadius: 2
-  minBounds: {x: 0, y: 0}
-  maxBounds: {x: 1, y: 1}
-  checkSlope: 1
-  maxSlope: 45
-  useExclusionZones: 1
-  exclusionLayers:
-    serializedVersion: 2
-    m_Bits: 768
-  exclusionRadius: 15
-  forceLODLevel: 1
-  lodLevelToUse: 2
-  removeUnnecessaryComponents: 0
-  combineMeshes: 0
-  createParentObject: 1
-  parentName: Generated Trees
 --- !u!4 &1842744355
 Transform:
   m_ObjectHideFlags: 0

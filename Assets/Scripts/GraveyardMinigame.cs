@@ -68,6 +68,7 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
     private int currentIndex = 0;
     private bool minigameActive = false;
     private bool minigameCompleted = false;
+    private int randomSeed = 0;
 
     private void Awake()
     {
@@ -80,10 +81,55 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
 
     private void Start()
     {
-        InitializeMinigame();
+        if (PhotonNetwork.IsConnected)
+        {
+            if (PhotonNetwork.IsMasterClient)
+            {
+                // MasterClient gera os índices completamente shuffled
+                int[] shuffledAssignments = GenerateShuffledAssignments();
+                photonView.RPC(nameof(RPC_InitializeMinigameWithNames), RpcTarget.AllBuffered, shuffledAssignments);
+            }
+            // Novos jogadores receberão o RPC via AllBuffered
+        }
+        else
+        {
+            // Singleplayer
+            int[] shuffledAssignments = GenerateShuffledAssignments();
+            InitializeMinigameWithNames(shuffledAssignments);
+        }
     }
 
-    private void InitializeMinigame()
+    private int[] GenerateShuffledAssignments()
+    {
+        // Pega apenas o número de nomes necessários
+        int gravestoneCount = gravestones.Count;
+        
+        // Cria lista de índices do namePool
+        List<int> nameIndices = new List<int>();
+        for (int i = 0; i < Mathf.Min(namePool.Count, gravestoneCount); i++)
+        {
+            nameIndices.Add(i);
+        }
+        
+        // Embaralha os índices dos nomes usando Fisher-Yates
+        for (int i = nameIndices.Count - 1; i > 0; i--)
+        {
+            int randomIndex = Random.Range(0, i + 1);
+            int temp = nameIndices[i];
+            nameIndices[i] = nameIndices[randomIndex];
+            nameIndices[randomIndex] = temp;
+        }
+        
+        return nameIndices.ToArray();
+    }
+
+    [PunRPC]
+    private void RPC_InitializeMinigameWithNames(int[] nameIndices)
+    {
+        InitializeMinigameWithNames(nameIndices);
+    }
+
+    private void InitializeMinigameWithNames(int[] nameIndices)
     {
         if (gravestones == null || gravestones.Count == 0)
         {
@@ -93,7 +139,7 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
         // Assign random names if enabled
         if (useRandomNames)
         {
-            AssignRandomNames();
+            AssignRandomNamesFromIndices(nameIndices);
         }
 
         foreach (var gravestone in gravestones)
@@ -116,27 +162,16 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
         minigameCompleted = false; 
     }
 
-    private void AssignRandomNames()
+    private void AssignRandomNamesFromIndices(int[] shuffledNameIndices)
     {
-        // Create a shuffled copy of the name pool
-        List<GravestoneData> availableNames = new List<GravestoneData>(namePool);
-        
-        // Shuffle using Fisher-Yates algorithm
-        for (int i = availableNames.Count - 1; i > 0; i--)
+        // Atribui os nomes embaralhados às gravestones
+        for (int i = 0; i < gravestones.Count && i < shuffledNameIndices.Length; i++)
         {
-            int randomIndex = Random.Range(0, i + 1);
-            GravestoneData temp = availableNames[i];
-            availableNames[i] = availableNames[randomIndex];
-            availableNames[randomIndex] = temp;
-        }
-
-        // Assign names to gravestones
-        for (int i = 0; i < gravestones.Count && i < availableNames.Count; i++)
-        {
-            if (gravestones[i] != null)
+            if (gravestones[i] != null && shuffledNameIndices[i] < namePool.Count)
             {
-                gravestones[i].SetName(availableNames[i].name);
-                gravestones[i].SetDisplayText(availableNames[i].GetFullText());
+                GravestoneData data = namePool[shuffledNameIndices[i]];
+                gravestones[i].SetName(data.name);
+                gravestones[i].SetDisplayText(data.GetFullText());
             }
         }
     }
@@ -151,12 +186,14 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
         // Find the index of the clicked gravestone in the sorted list
         int clickedIndex = sortedGravestones.IndexOf(clickedGravestone);
         
+        // Qualquer jogador pode clicar, mas apenas processar uma vez
         // Check if this is the correct gravestone in the sequence
         if (clickedIndex == currentIndex)
         {
             // Synchronize the correct click across all clients
             if (PhotonNetwork.IsConnected && photonView != null)
             {
+                // Qualquer cliente pode enviar, mas só processa se ainda estiver no índice correto
                 photonView.RPC(nameof(RPC_CorrectGravestoneClicked), RpcTarget.AllBuffered, clickedIndex);
             }
             else
@@ -192,6 +229,12 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
 
     private void ProcessCorrectClick(int gravestoneIndex)
     {
+        // Verificar se ainda é o índice correto (evita processamento duplicado)
+        if (gravestoneIndex != currentIndex)
+        {
+            return;
+        }
+
         if (gravestoneIndex >= 0 && gravestoneIndex < sortedGravestones.Count)
         {
             sortedGravestones[gravestoneIndex].SetGlowState(true);
@@ -214,10 +257,15 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
 
     private void CompleteMinigame()
     {
+        if (minigameCompleted)
+        {
+            return; // Já completado, evitar duplicação
+        }
+
         if (PhotonNetwork.IsConnected && photonView != null)
         {
-            // Only master client spawns the reward to avoid duplicates
-            if (PhotonNetwork.IsMasterClient)
+            // Qualquer jogador pode enviar, mas só processa uma vez
+            if (!minigameCompleted)
             {
                 photonView.RPC(nameof(RPC_CompleteMinigame), RpcTarget.AllBuffered);
             }
@@ -236,6 +284,11 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
 
     private void FinalizeCompletion()
     {
+        if (minigameCompleted)
+        {
+            return; // Já foi finalizado, evitar duplicação
+        }
+
         minigameCompleted = true;
         minigameActive = false;
         
@@ -243,7 +296,10 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
         
         foreach (var gravestone in gravestones)
         {
-            gravestone.SetClickable(false);
+            if (gravestone != null)
+            {
+                gravestone.SetClickable(false);
+            }
         }
 
         if (spawnRewardOnComplete && rewardPrefab != null && rewardSpawnPoint != null)
@@ -263,10 +319,8 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
     {
         if (PhotonNetwork.IsConnected && photonView != null)
         {
-            if (PhotonNetwork.IsMasterClient)
-            {
-                photonView.RPC(nameof(RPC_ResetMinigame), RpcTarget.AllBuffered);
-            }
+            // Qualquer jogador pode resetar o minigame
+            photonView.RPC(nameof(RPC_ResetMinigame), RpcTarget.AllBuffered);
         }
         else
         {
@@ -286,7 +340,10 @@ public class GraveyardMinigame : MonoBehaviourPunCallbacks
         
         foreach (var gravestone in gravestones)
         {
-            gravestone.ResetGravestone();
+            if (gravestone != null)
+            {
+                gravestone.ResetGravestone();
+            }
         }
     }
 

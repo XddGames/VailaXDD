@@ -1,5 +1,9 @@
 using UnityEngine;
 
+#if UNITY_EDITOR
+using UnityEditor;
+
+[ExecuteInEditMode]
 public class TerrainTreeGenerator : MonoBehaviour
 {
     [Header("Terrain Settings")]
@@ -48,12 +52,23 @@ public class TerrainTreeGenerator : MonoBehaviour
 
     private Transform treeParent;
 
-    public void Start()
+    void Awake()
     {
-        Timer theTimer = Object.FindFirstObjectByType<Timer>();
-        if (theTimer != null){
-        theTimer.Begin();
-      }
+        // Disable in play mode - this is an editor-only tool
+        if (Application.isPlaying)
+        {
+            enabled = false;
+        }
+    }
+
+    void Start()
+    {
+        // Only run in edit mode, not play mode
+        if (Application.isPlaying)
+        {
+            enabled = false;
+            return;
+        }
     }
 
     public void GenerateTrees()
@@ -230,10 +245,8 @@ public class TerrainTreeGenerator : MonoBehaviour
 
         Debug.Log($"Successfully placed {treesPlaced} trees out of {treeCount} requested (took {attempts} attempts)");
 
-#if UNITY_EDITOR
         // Mark scene as dirty so changes are saved
         UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(UnityEngine.SceneManagement.SceneManager.GetActiveScene());
-#endif
     }
 
     private void OptimizeTree(GameObject tree)
@@ -274,33 +287,22 @@ public class TerrainTreeGenerator : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Gets the weight (0-1) of a specific texture layer at a world position.
-    /// </summary>
     private float GetTextureWeight(Terrain t, Vector3 worldPos, int textureIndex) 
     {
-        // Convert world position to normalized terrain coordinates (0 to 1)
         float normalizedX = (worldPos.x - t.transform.position.x) / t.terrainData.size.x;
         float normalizedZ = (worldPos.z - t.transform.position.z) / t.terrainData.size.z;
 
-        // Convert to alphamap coordinates
         int mapX = Mathf.RoundToInt(normalizedX * t.terrainData.alphamapWidth);
         int mapZ = Mathf.RoundToInt(normalizedZ * t.terrainData.alphamapHeight);
 
-        // Safety check to prevent out of bounds
         mapX = Mathf.Clamp(mapX, 0, t.terrainData.alphamapWidth - 1);
         mapZ = Mathf.Clamp(mapZ, 0, t.terrainData.alphamapHeight - 1);
 
-        // Get the specific 1x1 pixel of data at this coordinate
         float[,,] splatmapData = t.terrainData.GetAlphamaps(mapX, mapZ, 1, 1);
 
-        // Extract the weight of the requested texture index
         return splatmapData[0, 0, textureIndex];
     }
 
-    /// <summary>
-    /// Sets the layer of a GameObject and all its children recursively.
-    /// </summary>
     private void SetLayerRecursively(GameObject obj, int layer)
     {
         obj.layer = layer;
@@ -310,15 +312,11 @@ public class TerrainTreeGenerator : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Adds MeshCollider components to all meshes in the tree.
-    /// </summary>
     private void AddMeshColliders(GameObject tree)
     {
         MeshFilter[] meshFilters = tree.GetComponentsInChildren<MeshFilter>();
         foreach (MeshFilter meshFilter in meshFilters)
         {
-            // Skip if already has a collider
             if (meshFilter.gameObject.GetComponent<Collider>() != null)
                 continue;
 
@@ -365,10 +363,7 @@ public class TerrainTreeGenerator : MonoBehaviour
             }
         }
 
-#if UNITY_EDITOR
-        // Mark scene as dirty so changes are saved
         UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(UnityEngine.SceneManagement.SceneManager.GetActiveScene());
-#endif
     }
 
     private void OnDrawGizmosSelected()
@@ -379,7 +374,6 @@ public class TerrainTreeGenerator : MonoBehaviour
         Vector3 terrainPos = terrain.transform.position;
         Vector3 terrainSize = terrainData.size;
 
-        // Draw bounds
         Vector3 minPos = terrainPos + new Vector3(minBounds.x * terrainSize.x, 0, minBounds.y * terrainSize.z);
         Vector3 maxPos = terrainPos + new Vector3(maxBounds.x * terrainSize.x, 0, maxBounds.y * terrainSize.z);
 
@@ -394,3 +388,13 @@ public class TerrainTreeGenerator : MonoBehaviour
         Gizmos.DrawWireCube(center, size);
     }
 }
+#else
+// Empty stub for builds - entire class is excluded from compilation
+public class TerrainTreeGenerator : MonoBehaviour
+{
+    void Awake()
+    {
+        enabled = false;
+    }
+}
+#endif
