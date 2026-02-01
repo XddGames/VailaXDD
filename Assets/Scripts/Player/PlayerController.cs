@@ -760,7 +760,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         if (currentGenerator != null)
         {
             float progress = generatorProgress / currentGenerator.timeToTurnOn;
-            
             GUI.Box(new Rect(Screen.width / 2 - 100, Screen.height - 100, 200, 30), $"Powering up... {progress * 100:F0}%");
         }
     }
