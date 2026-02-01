@@ -80,7 +80,7 @@ public class VoiceInput : MonoBehaviour
 
     void OpenLastDoor()
     {
-
+        
     }
 
     // gives "clean" text
