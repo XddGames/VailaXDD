@@ -223,11 +223,11 @@ Light:
   m_Enabled: 1
   serializedVersion: 11
   m_Type: 0
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Intensity: 40
-  m_Range: 20
-  m_SpotAngle: 60
-  m_InnerSpotAngle: 21.80208
+  m_Color: {r: 1, g: 0.95686275, b: 0.8784314, a: 1}
+  m_Intensity: 800
+  m_Range: 506.33963
+  m_SpotAngle: 40
+  m_InnerSpotAngle: 20
   m_CookieSize: 10
   m_Shadows:
     m_Type: 0
@@ -255,7 +255,7 @@ Light:
       e32: 0
       e33: 1
     m_UseCullingMatrixOverride: 0
-  m_Cookie: {fileID: 0}
+  m_Cookie: {fileID: 2800000, guid: e6cfa64f7109b010f8eda09a6b5da23c, type: 3}
   m_DrawHalo: 0
   m_Flare: {fileID: 0}
   m_RenderMode: 0
@@ -292,7 +292,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Version: 3
   m_UsePipelineSettings: 1
-  m_AdditionalLightsShadowResolutionTier: 2
+  m_AdditionalLightsShadowResolutionTier: 1
   m_LightLayerMask: 1
   m_RenderingLayers: 1
   m_CustomShadowLayers: 0
@@ -384,8 +384,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8530567939078740915}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: -0.42797852, y: -0.2969997, z: 0.7529907}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0.05, y: 0.05, z: 0.05}
   m_ConstrainProportionsScale: 1
   m_Children:
@@ -394,7 +394,7 @@ Transform:
   - {fileID: 4157851278222148321}
   - {fileID: 921769430975856978}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &-3572732190697844022
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -422,9 +422,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 211763cabb63bb3728f3031e5b65dfb8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  pickupRange: 2
   pickupKey: 101
-  pickupPrompt: {fileID: 0}
+  itemName: Flashlight
+  pickupRange: 2
+  backgroundColor: {r: 0, g: 0, b: 0, a: 0.7}
+  textColor: {r: 1, g: 1, b: 1, a: 1}
+  fontSize: 24
 --- !u!65 &760273194624314064
 BoxCollider:
   m_ObjectHideFlags: 0

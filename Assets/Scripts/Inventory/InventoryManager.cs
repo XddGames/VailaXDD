@@ -243,6 +243,12 @@ public class InventoryManager : MonoBehaviourPun
             // Get the FlashlightController from the instantiated object
             flashlightController = currentHeldItem.GetComponent<FlashlightController>();
             
+            // Tell the flashlight who owns it (so only local player can control it)
+            if (flashlightController != null)
+            {
+                flashlightController.SetOwner(photonView);
+            }
+            
             // Start hidden until player equips it (presses 1)
             currentHeldItem.SetActive(false);
         }
@@ -260,6 +266,29 @@ public class InventoryManager : MonoBehaviourPun
             if (item.itemType == itemType) return true;
         }
         return false;
+    }
+
+    // Network sync RPCs for flashlight
+    [PunRPC]
+    void RPC_SyncFlashlightEquipped(bool equipped, bool lightOn)
+    {
+        if (currentHeldItem != null)
+        {
+            currentHeldItem.SetActive(equipped);
+        }
+        if (flashlightController != null)
+        {
+            flashlightController.SyncFromNetwork(equipped, lightOn);
+        }
+    }
+
+    [PunRPC]
+    void RPC_SyncFlashlightState(bool lightOn)
+    {
+        if (flashlightController != null)
+        {
+            flashlightController.SyncFromNetwork(true, lightOn);
+        }
     }
 
     public List<InventoryItem> GetItems() => items;
