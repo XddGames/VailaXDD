@@ -752,10 +752,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         }
     }
 
-
-
-
-
     private void OnGUI()
     {
         if (currentState == PlayerState.Spectating)
