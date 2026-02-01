@@ -99,7 +99,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a82f9284e4cbc5f4aadcb634932b834b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  HasMaskOn: 0
+  maskOverlayUI: {fileID: 0}
+  audioSource: {fileID: 0}
+  breathingSound: {fileID: 0}
+  equipSound: {fileID: 0}
+  detectionMultiplier: 0.2
 --- !u!114 &8440374821185488664
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -114,8 +118,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   inputHandler: {fileID: 0}
   playerCamera: {fileID: 7899688849107824191}
+  playerMask: {fileID: 0}
   playerUI: {fileID: 8253415465378350966}
-  playerAnimator: {fileID: 308607367608793271}
   reviveRange: 3
   reviveTime: 5
   reviveTimeLimit: 30
@@ -146,6 +150,10 @@ MonoBehaviour:
   gravestoneLayerMask:
     serializedVersion: 2
     m_Bits: 256
+  paperLayerMask:
+    serializedVersion: 2
+    m_Bits: 0
+  toggleSpeed: 25
 --- !u!114 &6725692040602590194
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -650,6 +658,9 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2663930571507900611, guid: b142d14b4ac39f14f82b443bb12f3f6e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6790959630555362341}
     - targetCorrespondingSourceObject: {fileID: 4307256763493665099, guid: b142d14b4ac39f14f82b443bb12f3f6e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5585162642624727565}
@@ -698,3 +709,22 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 2663930571507900611, guid: b142d14b4ac39f14f82b443bb12f3f6e, type: 3}
   m_PrefabInstance: {fileID: 6229088645553301429}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &6790959630555362341
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8253415465378350966}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed8e2f90b5b698a63ad392e833e05225, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  slotImages: []
+  slotIconImages: []
+  normalSlotColor: {r: 1, g: 1, b: 1, a: 0.3}
+  selectedSlotColor: {r: 1, g: 1, b: 1, a: 0.8}
+  equippedSlotColor: {r: 0, g: 1, b: 0, a: 1}
+  emptyIconColor: {r: 1, g: 1, b: 1, a: 0}
+  filledIconColor: {r: 1, g: 1, b: 1, a: 1}
