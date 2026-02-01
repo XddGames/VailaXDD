@@ -93,6 +93,7 @@ GameObject:
   - component: {fileID: -2400955046980152237}
   - component: {fileID: 3230311223489403744}
   - component: {fileID: 4388853868688799669}
+  - component: {fileID: -4534004239648166082}
   m_Layer: 6
   m_Name: PlayerPrefab
   m_TagString: Player
@@ -238,6 +239,7 @@ MonoBehaviour:
   playerCamera: {fileID: 7899688849107824191}
   playerMask: {fileID: 1610910975578692527}
   playerUI: {fileID: 8253415465378350966}
+  playerAnimator: {fileID: 0}
   reviveRange: 3
   reviveTime: 5
   reviveTimeLimit: 30
@@ -350,6 +352,28 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 971421174549903251}
   m_CullTransparentMesh: 1
+--- !u!95 &-4534004239648166082
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 971421174549903251}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: a1b2c3d4e5f6789012345678abcdef01, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &3948766898790910205
 GameObject:
   m_ObjectHideFlags: 0
