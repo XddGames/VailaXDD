@@ -18,17 +18,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     [SerializeField] private Camera playerCamera;
     [SerializeField] public PlayerMask playerMask;
     [SerializeField] private GameObject playerUI; // Drag your player UI Canvas here
-    [SerializeField] private Animator playerAnimator;
     private CharacterController characterController;
-    
-    // Animation parameter hashes for performance
-    private static readonly int AnimSpeed = Animator.StringToHash("Speed");
-    private static readonly int AnimIsGrounded = Animator.StringToHash("IsGrounded");
-    private static readonly int AnimIsJumping = Animator.StringToHash("IsJumping");
-    private static readonly int AnimIsDead = Animator.StringToHash("IsDead");
-    private static readonly int AnimIsReviving = Animator.StringToHash("IsReviving");
-    private static readonly int AnimEmote = Animator.StringToHash("Emote");
-    private static readonly int AnimIsSprinting = Animator.StringToHash("IsSprinting");
     [Header("Revive Settings")]
     [SerializeField] private float reviveRange = 3f;
     [SerializeField] private float reviveTime = 5f; // Time to revive in seconds
@@ -101,12 +91,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     private float savedSprintSpeed;
     private List<int> papersPickedUp;
     [SerializeField] private float toggleSpeed = 25f; // speed used when toggled on
-    
-    // Animation state tracking
-    private bool wasJumping = false;
-    private bool jumpedWhileSprinting = false; // Track if jump started while sprinting
-    private int currentEmote = 0;
-    private bool deathAnimationPlayed = false; // Track if dying animation finished
 
 
     public PlayerState GetCurrentState()
@@ -119,12 +103,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         characterController = GetComponent<CharacterController>();
         currentStamina = maxStamina;
         spectatorCamera = GetComponent<SpectatorCamera>();
-        
-        // Get animator if not assigned
-        if (playerAnimator == null)
-        {
-            playerAnimator = GetComponent<Animator>();
-        }
     }
 
     private void Start()
@@ -143,13 +121,8 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 inputHandler = FindAnyObjectByType<InputHandler>();
                 if (inputHandler == null)
                 {
-                    // Try to get InputHandler from this GameObject
-                    inputHandler = GetComponent<InputHandler>();
-                    if (inputHandler == null)
-                    {
-                        // Create InputHandler on this GameObject
-                        inputHandler = gameObject.AddComponent<InputHandler>();
-                    }
+                    enabled = false;
+                    return;
                 }
             }
 
@@ -280,7 +253,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 HandleGenerator();
                 HandlePaperInteraction();
                 HandleGraveyardInteraction();
-                HandleEmoteInput();
                 break;
             case PlayerState.WaitingRevive:
                 HandleCameraRotation();
@@ -291,123 +263,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 break;
             case PlayerState.SinglePlayerDead:
                 break;
-        }
-        
-        // Always update animations
-        UpdateAnimations();
-    }
-
-    private void HandleEmoteInput()
-    {
-        // Press 1 for emote (twerk dance)
-        if (Input.GetKeyDown(KeyCode.Alpha1) && isGrounded && !IsMoving())
-        {
-            TriggerEmote(1);
-        }
-    }
-
-    private void TriggerEmote(int emoteId)
-    {
-        currentEmote = emoteId;
-        if (playerAnimator != null)
-        {
-            playerAnimator.SetInteger(AnimEmote, emoteId);
-        }
-        
-        // Reset emote after a short delay
-        Invoke(nameof(ResetEmote), 0.1f);
-    }
-
-    private void ResetEmote()
-    {
-        currentEmote = 0;
-        if (playerAnimator != null)
-        {
-            playerAnimator.SetInteger(AnimEmote, 0);
-        }
-    }
-
-    private void UpdateAnimations()
-    {
-        if (playerAnimator == null) return;
-
-        // Calculate movement speed (0 = idle, 0-1 = walking, >1 = running)
-        float movementSpeed = 0f;
-        bool isSprinting = false;
-        
-        if (inputHandler != null)
-        {
-            Vector2 input = inputHandler.movementInput;
-            float inputMagnitude = input.magnitude;
-            
-            if (inputMagnitude > INPUT_THRESHOLD)
-            {
-                // Normalize speed: walking = 0.5, sprinting = 1.0
-                isSprinting = inputHandler.sprintInput && currentStamina > 0f;
-                movementSpeed = isSprinting ? 1f : 0.5f;
-            }
-        }
-
-        // Set animator parameters for movement
-        playerAnimator.SetFloat(AnimSpeed, movementSpeed);
-        playerAnimator.SetBool(AnimIsGrounded, isGrounded);
-        
-        // Jumping detection
-        bool isCurrentlyJumping = !isGrounded && velocity.y > 0;
-        bool isInAir = !isGrounded;
-        
-        if (isCurrentlyJumping && !wasJumping)
-        {
-            // Just started jumping - set both IsJumping and IsSprinting based on jump type
-            playerAnimator.SetBool(AnimIsJumping, true);
-            // Use jumpedWhileSprinting to determine animation (JumpingUp vs Jumping_Running)
-            playerAnimator.SetBool(AnimIsSprinting, jumpedWhileSprinting);
-        }
-        else if (isGrounded)
-        {
-            // Landed - reset jump state
-            playerAnimator.SetBool(AnimIsJumping, false);
-            // When grounded, use current sprint state for run animation
-            playerAnimator.SetBool(AnimIsSprinting, isSprinting && movementSpeed > 0.5f);
-        }
-        else if (isInAir)
-        {
-            // Still in air - keep the sprint state from when jump started
-            playerAnimator.SetBool(AnimIsSprinting, jumpedWhileSprinting);
-        }
-        
-        wasJumping = isCurrentlyJumping;
-
-        // Death state handling
-        bool isDead = currentState == PlayerState.WaitingRevive || currentState == PlayerState.SinglePlayerDead;
-        playerAnimator.SetBool(AnimIsDead, isDead);
-        
-        // Track when dying animation finishes to transition to dead loop
-        if (isDead)
-        {
-            // Check if we're in the PlayerDying animation state
-            AnimatorStateInfo stateInfo = playerAnimator.GetCurrentAnimatorStateInfo(0);
-            
-            // If dying animation finished (normalized time >= 1), set reviving to trigger dead loop
-            if (stateInfo.IsName("PlayerDying") && stateInfo.normalizedTime >= 0.95f)
-            {
-                deathAnimationPlayed = true;
-            }
-            
-            // IsReviving is used here to indicate "show dead on ground" state after dying animation
-            playerAnimator.SetBool(AnimIsReviving, deathAnimationPlayed && !isBeingRevived);
-        }
-        else
-        {
-            // Reset death tracking when alive
-            deathAnimationPlayed = false;
-            playerAnimator.SetBool(AnimIsReviving, false);
-        }
-        
-        // Actually being revived by another player - could trigger different animation
-        if (isBeingRevived)
-        {
-            playerAnimator.SetBool(AnimIsReviving, true);
         }
     }
 
@@ -581,18 +436,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             stream.SendNext(transform.rotation);
             stream.SendNext(velocity);
             stream.SendNext((int)currentState);
-            
-            // Sync animation parameters
-            if (playerAnimator != null)
-            {
-                stream.SendNext(playerAnimator.GetFloat(AnimSpeed));
-                stream.SendNext(playerAnimator.GetBool(AnimIsGrounded));
-                stream.SendNext(playerAnimator.GetBool(AnimIsJumping));
-                stream.SendNext(playerAnimator.GetBool(AnimIsDead));
-                stream.SendNext(playerAnimator.GetBool(AnimIsReviving));
-                stream.SendNext(playerAnimator.GetInteger(AnimEmote));
-                stream.SendNext(playerAnimator.GetBool(AnimIsSprinting));
-            }
         }
         else
         {
@@ -609,26 +452,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
             float lag = Mathf.Abs((float)(PhotonNetwork.Time - info.SentServerTime));
             networkPosition += networkVelocity * lag;
-            
-            // Receive and apply animation parameters for remote players
-            if (playerAnimator != null)
-            {
-                float netSpeed = (float)stream.ReceiveNext();
-                bool netIsGrounded = (bool)stream.ReceiveNext();
-                bool netIsJumping = (bool)stream.ReceiveNext();
-                bool netIsDead = (bool)stream.ReceiveNext();
-                bool netIsReviving = (bool)stream.ReceiveNext();
-                int netEmote = (int)stream.ReceiveNext();
-                bool netIsSprinting = (bool)stream.ReceiveNext();
-                
-                playerAnimator.SetFloat(AnimSpeed, netSpeed);
-                playerAnimator.SetBool(AnimIsGrounded, netIsGrounded);
-                playerAnimator.SetBool(AnimIsJumping, netIsJumping);
-                playerAnimator.SetBool(AnimIsDead, netIsDead);
-                playerAnimator.SetBool(AnimIsReviving, netIsReviving);
-                playerAnimator.SetInteger(AnimEmote, netEmote);
-                playerAnimator.SetBool(AnimIsSprinting, netIsSprinting);
-            }
         }
     }
 
@@ -680,7 +503,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 target.ChangeState(PlayerState.Alive);
                 target.isBeingRevived = false;
                 target.reviveTimer = 0f;
-                target.deathAnimationPlayed = false; // Reset death animation flag
             }
         }
     }
@@ -869,9 +691,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
         if (jumpPressed && isGrounded && (infiniteStamina || currentStamina >= jumpStaminaCost))
         {
-            // Record if player was sprinting when jump started
-            jumpedWhileSprinting = inputHandler.sprintInput && inputHandler.movementInput.sqrMagnitude > INPUT_THRESHOLD * INPUT_THRESHOLD;
-            
             velocity.y = Mathf.Sqrt(jumpForce * JUMP_GRAVITY_MULTIPLIER * Mathf.Abs(gravity));
             if (!infiniteStamina)
             {
@@ -879,12 +698,6 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 currentStamina = Mathf.Max(0f, currentStamina);
                 lastSprintTime = Time.time;
             }
-        }
-        
-        // Reset sprint jump flag when grounded
-        if (isGrounded && velocity.y <= 0)
-        {
-            jumpedWhileSprinting = false;
         }
     }
 

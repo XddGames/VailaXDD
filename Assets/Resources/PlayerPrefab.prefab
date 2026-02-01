@@ -94,7 +94,6 @@ GameObject:
   - component: {fileID: 3230311223489403744}
   - component: {fileID: 4388853868688799669}
   - component: {fileID: 4477543339451005891}
-  - component: {fileID: -4534004239648166082}
   m_Layer: 6
   m_Name: PlayerPrefab
   m_TagString: Player
@@ -241,7 +240,6 @@ MonoBehaviour:
   playerCamera: {fileID: 7899688849107824191}
   playerMask: {fileID: 1610910975578692527}
   playerUI: {fileID: 8253415465378350966}
-  playerAnimator: {fileID: 0}
   reviveRange: 3
   reviveTime: 5
   reviveTimeLimit: 30

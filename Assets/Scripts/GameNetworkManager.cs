@@ -14,7 +14,7 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
     [Header("Auto-Find Spawn Points")]
     [SerializeField] private bool autoFindSpawnPoints = true;
     [SerializeField] private string spawnPointTag = "SpawnPoint"; // Tag for spawn point GameObjects
-    [SerializeField] private Vector3 defaultSpawnPosition = new Vector3(654.6893f, 13.3f, 661.1091f); // Default spawn if no spawn points
+    [SerializeField] Vector3 spawnPosition;
 
 
     private GameObject localPlayerInstance;
@@ -38,7 +38,7 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
         if (PhotonNetwork.IsMasterClient)
         {
             // Make sure you have an enemy prefab in Resources folder
-            Vector3 enemySpawnPos = defaultSpawnPosition;
+            Vector3 enemySpawnPos = spawnPosition;
             if (enemySpawnPos == Vector3.zero)
             {
                 enemySpawnPos = new Vector3(0, 1, 0); // Default position
@@ -105,8 +105,9 @@ public class GameNetworkManager : MonoBehaviourPunCallbacks
         }
         else
         {
-            // Fallback: Use default spawn position
-            return defaultSpawnPosition;
+            // Fallback: Random spawn in a circle
+            Vector2 randomCircle = Random.insideUnitCircle * spawnRadius;
+            return new Vector3(randomCircle.x, 1f, randomCircle.y);
         }
     }
 
