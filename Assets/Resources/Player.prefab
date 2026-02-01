@@ -1245,7 +1245,6 @@ MonoBehaviour:
   playerMask: {fileID: 1839947919829291726}
   playerUI: {fileID: 6083773635010220116}
   playerAnimator: {fileID: 0}
-  playerAnimator: {fileID: 0}
   reviveRange: 3
   reviveTime: 5
   reviveTimeLimit: 30

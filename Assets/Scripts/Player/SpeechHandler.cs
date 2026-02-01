@@ -30,6 +30,7 @@ public class VoiceInput : MonoBehaviour
             Debug.LogError("Whisper not connected");
             return;
         }
+      
         if (Microphone.devices.Length <= 0)
         {
             Debug.LogError("No Microphone detected!");
@@ -44,6 +45,8 @@ public class VoiceInput : MonoBehaviour
     {
         foreach (var (cmd, fn) in _commandMap)
         {
+            Debug.Log($"Checking command: {command}");
+
             if (command.Contains(cmd))
             {
                 Debug.Log($"Interpreted command: {command}");
@@ -57,8 +60,10 @@ public class VoiceInput : MonoBehaviour
         while (true)
         {
             _clip = Microphone.Start(_micDevice, false, 4, 16000);
-            yield return new WaitForSeconds(4); 
+            yield return new WaitForSeconds(4);
             Transcribe(_clip);
+            Debug.Log($"Checking transcribe:");
+
         }
     }
 
@@ -74,7 +79,7 @@ public class VoiceInput : MonoBehaviour
 
     void IncreaseMySuspicion()
     {
-        int playerId = (PhotonNetwork.IsMasterClient)? 0 : 1;
+        int playerId = (PhotonNetwork.IsMasterClient) ? 0 : 1;
         _enemy.IncreaseSuspicion(playerId, 0.25f);
     }
 
