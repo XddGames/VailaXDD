@@ -29,15 +29,14 @@ public class PlayerMask : MonoBehaviour
     public void SetMaskState(bool isOn)
     {
         HasMaskOn = isOn;
+        Debug.Log($"SETMASKSTATE: isOn:{isOn} maskOverlayUI:{maskOverlayUI!=null}");
         if (maskOverlayUI != null)
             maskOverlayUI.SetActive(isOn);
 
         if (isOn)
         {
-            // Play one-shot equip sound
             if (equipSound != null) AudioSource.PlayClipAtPoint(equipSound, transform.position);
             
-            // Start looping breathing
             if (audioSource != null && breathingSound != null)
             {
                 audioSource.clip = breathingSound;
@@ -47,7 +46,6 @@ public class PlayerMask : MonoBehaviour
         }
         else
         {
-            // Stop breathing
             if (audioSource != null) audioSource.Stop();
         }
     }

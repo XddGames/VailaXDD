@@ -326,15 +326,14 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
             animator.SetFloat(speedHash, currentAgentSpeed);
 
             // Debug: log animator controller name and current state occasionally
-            if (showDebug && Time.frameCount % 120 == 0)
+            if (showDebug && Time.frameCount % 120 == 0 && false)
             {
                 var rac = animator.runtimeAnimatorController != null ? animator.runtimeAnimatorController.name : "null";
                 var stateInfo = animator.GetCurrentAnimatorStateInfo(0);
                 float reportedSpeed = animator.GetFloat(speedHash);
-                Debug.Log($"[Enemy Debug] Animator: {rac}, SpeedParam: {reportedSpeed:F2}, StateHash: {stateInfo.shortNameHash}, NormTime: {stateInfo.normalizedTime:F2}");
             }
         }
-        else if (showDebug && Time.frameCount % 120 == 0)
+        else if (showDebug && Time.frameCount % 120 == 0 && false)
         {
             Debug.Log($"[Enemy Debug] Animator is null on enemy {name}");
         }
@@ -989,7 +988,7 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         Transform nearest = null;
         float minDist = range;
         
-        if (Time.frameCount % 120 == 0 && showDebug) // Every 2 seconds
+        if (Time.frameCount % 120 == 0 && showDebug && false) // Every 2 seconds
         {
             Debug.Log($"<color=magenta>GetNearestInRange: Checking {Players.Count} players within {range}m</color>");
         }

@@ -402,7 +402,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         
         if (Input.GetKeyDown(KeyCode.G)) // mask
         {
-            playerMask.SetMaskState(!playerMask.HasMaskOn);
+            ToggleMask();
         }
 
         switch (currentState)
@@ -1158,7 +1158,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         if (playerMask == null) return;
 
         bool newState = !playerMask.HasMaskOn;
-        playerMask.SetMaskState(newState);
+        playerMask.SetMaskState(newstate);
 
         if (PhotonNetwork.IsConnected && photonView != null)
         {
