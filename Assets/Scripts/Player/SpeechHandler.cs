@@ -80,7 +80,7 @@ public class VoiceInput : MonoBehaviour
 
     void OpenLastDoorEasterEgg()
     {
-        
+        EndingSceneLoader.LoadEndingSceneStatic();
     }
 
     // gives "clean" text
