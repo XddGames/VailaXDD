@@ -261,13 +261,14 @@ MonoBehaviour:
   jumpStaminaCost: 15
   mouseSensitivity: 0.2
   maxLookAngle: 75.7
-  interactRange: 3
+  interactRange: 10
   generatorLayerMask:
     serializedVersion: 2
     m_Bits: 128
   gravestoneLayerMask:
     serializedVersion: 2
     m_Bits: 256
+  toggleSpeed: 25
 --- !u!114 &6725692040602590194
 MonoBehaviour:
   m_ObjectHideFlags: 0

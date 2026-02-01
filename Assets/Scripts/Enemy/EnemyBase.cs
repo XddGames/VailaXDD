@@ -86,6 +86,11 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
 
     private EnemyState state = EnemyState.Teleporting;
     private NavMeshAgent agent;
+
+    [Header("Animation")]
+    [SerializeField] private Animator animator;
+    private int speedHash;
+
     private float[] suspicionLevels;
     private float teleportTimer;
     private Transform target;
@@ -130,6 +135,10 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         stream.SendNext(transform.position);
         stream.SendNext(transform.rotation);
         stream.SendNext((int)state);
+
+        // Send current animation speed so remote clients can mirror animations
+        float animSpeed = (agent != null) ? agent.velocity.magnitude : 0f;
+        stream.SendNext(animSpeed);
         
         // Send suspicion levels count first, then the values
         int count = (suspicionLevels != null) ? suspicionLevels.Length : 0;
@@ -149,6 +158,7 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         Vector3 networkPos = (Vector3)stream.ReceiveNext();
         Quaternion networkRot = (Quaternion)stream.ReceiveNext();
         int stateInt = (int)stream.ReceiveNext();
+        float networkAnimSpeed = (float)stream.ReceiveNext();
         
         // Smoothly interpolate position
         if (agent != null && agent.enabled)
@@ -163,6 +173,12 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         }
         
         state = (EnemyState)stateInt;
+
+        // Apply animation speed on remote clients
+        if (animator != null)
+        {
+            animator.SetFloat(speedHash, networkAnimSpeed);
+        }
         
         // Receive suspicion levels - first get the count
         int count = (int)stream.ReceiveNext();
@@ -210,6 +226,14 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
             agent.updatePosition = true;
             agent.updateUpAxis = true;
             agent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQualityObstacleAvoidance;
+        }
+
+        // Setup animator
+        if (animator == null) animator = GetComponentInChildren<Animator>();
+        speedHash = Animator.StringToHash("Speed");
+        if (animator == null && showDebug)
+        {
+            Debug.LogWarning("Enemy has no Animator component; animations won't play.");
         }
 
         Rigidbody rb = GetComponent<Rigidbody>();
@@ -265,6 +289,26 @@ public class EnemyBase : MonoBehaviourPunCallbacks, IPunObservable
         }
 
         UpdateSuspicionUI();
+
+        // Update animation parameter from agent velocity (master client authoritative)
+        float currentAgentSpeed = (agent != null) ? agent.velocity.magnitude : 0f;
+        if (animator != null)
+        {
+            animator.SetFloat(speedHash, currentAgentSpeed);
+
+            // Debug: log animator controller name and current state occasionally
+            if (showDebug && Time.frameCount % 120 == 0)
+            {
+                var rac = animator.runtimeAnimatorController != null ? animator.runtimeAnimatorController.name : "null";
+                var stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+                float reportedSpeed = animator.GetFloat(speedHash);
+                Debug.Log($"[Enemy Debug] Animator: {rac}, SpeedParam: {reportedSpeed:F2}, StateHash: {stateInfo.shortNameHash}, NormTime: {stateInfo.normalizedTime:F2}");
+            }
+        }
+        else if (showDebug && Time.frameCount % 120 == 0)
+        {
+            Debug.Log($"[Enemy Debug] Animator is null on enemy {name}");
+        }
     }
 
     void UpdateSuspicionUI()

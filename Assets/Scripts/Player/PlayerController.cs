@@ -52,7 +52,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     [SerializeField] private float maxLookAngle = 80f;
 
     [Header("Generator Settings")]
-    [SerializeField] private float interactRange = 3f;
+    [SerializeField] private float interactRange = 10f;
     [SerializeField] private LayerMask generatorLayerMask;
     private PowerGenerator currentGenerator = null;
     private float generatorProgress = 0f;
@@ -81,6 +81,11 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     private PlayerState currentState;
     private bool infiniteStamina = false;
     private bool lastJumpInput = false;
+    private bool speedToggleActive = false;
+    private float savedWalkSpeed;
+    private float savedSprintSpeed;
+    [SerializeField] private float toggleSpeed = 25f; // speed used when toggled on
+
 
     public PlayerState GetCurrentState()
     {
@@ -195,6 +200,11 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             }
         }
 
+        if (Input.GetKeyDown(KeyCode.C))
+        {
+            ToggleSpeed();
+        }
+        
         if (Input.GetKeyDown(KeyCode.G)) // mask
         {
             playerMask.SetMaskState(!playerMask.HasMaskOn);
@@ -283,6 +293,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     private void HandleGenerator()
     {
+        UnityEngine.Debug.Log($"currentGenerator={currentGenerator != null}");
         if (playerBeingRevived != null) return;
 
         if (!inputHandler.interactInput)
@@ -665,7 +676,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         {
             if (Time.time >= lastInteractionTime + INTERACTION_COOLDOWN)
             {
-                ToggleMask();
+                // ToggleMask();
                 lastInteractionTime = Time.time;
             }
         }
@@ -723,6 +734,28 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         return CalculateSpeed();
     }
 
+    // Toggle player's walk/sprint speed between normal and `toggleSpeed`.
+    private void ToggleSpeed()
+    {
+        speedToggleActive = !speedToggleActive;
+        if (speedToggleActive)
+        {
+            savedWalkSpeed = walkSpeed;
+            savedSprintSpeed = sprintSpeed;
+            walkSpeed = toggleSpeed;
+            sprintSpeed = toggleSpeed;
+        }
+        else
+        {
+            walkSpeed = savedWalkSpeed;
+            sprintSpeed = savedSprintSpeed;
+        }
+    }
+
+
+
+
+
     private void OnGUI()
     {
         if (currentState == PlayerState.Spectating)
@@ -759,9 +792,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         if (currentGenerator != null)
         {
             float progress = generatorProgress / currentGenerator.timeToTurnOn;
-            
-            GUI.Box(new Rect(Screen.width / 2 - 100, Screen.height - 100, 200, 30), "");
-            GUI.Box(new Rect(Screen.width / 2 - 100, Screen.height - 100, 200 * progress, 30), $"Powering up... {progress * 100:F0}%");
+            GUI.Box(new Rect(Screen.width / 2 - 100, Screen.height - 100, 200, 30), $"Powering up... {progress * 100:F0}%");
         }
     }
 }
