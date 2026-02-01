@@ -2,7 +2,6 @@ using UnityEngine;
 using Photon.Pun;
 using System.Diagnostics;
 using System.Collections.Generic;
-
 public enum PlayerState
 {
     Alive,
@@ -18,12 +17,30 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     [SerializeField] private Camera playerCamera;
     [SerializeField] public PlayerMask playerMask;
     [SerializeField] private GameObject playerUI; // Drag your player UI Canvas here
-
+    [SerializeField] private Animator playerAnimator;
     private CharacterController characterController;
+    
+    // Animation parameter hashes for performance
+    private static readonly int AnimSpeed = Animator.StringToHash("Speed");
+    private static readonly int AnimIsGrounded = Animator.StringToHash("IsGrounded");
+    private static readonly int AnimIsJumping = Animator.StringToHash("IsJumping");
+    private static readonly int AnimIsDead = Animator.StringToHash("IsDead");
+    private static readonly int AnimIsReviving = Animator.StringToHash("IsReviving");
+    private static readonly int AnimEmote = Animator.StringToHash("Emote");
+    private static readonly int AnimIsSprinting = Animator.StringToHash("IsSprinting");
+    
+    // Animation state name hashes for CrossFade
+    private static readonly int StateIdle = Animator.StringToHash("PlayerIddle");
+    private static readonly int StateWalk = Animator.StringToHash("PlayerWalk");
+    private static readonly int StateRun = Animator.StringToHash("PlayerRun");
+    private static readonly int StateJumpUp = Animator.StringToHash("JumpingUp");
+    private static readonly int StateJumpRun = Animator.StringToHash("Jumping_Running");
+    private static readonly int StateDying = Animator.StringToHash("PlayerDying");
+    private static readonly int StateEmote1 = Animator.StringToHash("PlayerEmote1");
     [Header("Revive Settings")]
     [SerializeField] private float reviveRange = 3f;
     [SerializeField] private float reviveTime = 5f; // Time to revive in seconds
-    [SerializeField] private float reviveTimeLimit = 30f; // Time before permanent death
+    [SerializeField] private float reviveTimeLimit = 120f; // Time before permanent death
     [SerializeField] private LayerMask playerLayerMask; // Set to Player layer
     private float reviveProgress = 0f;
     private float reviveTimer = 0f; // Countdown timer
@@ -53,6 +70,15 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     [Header("Camera Settings")]
     [SerializeField] private float mouseSensitivity = 0.2f;
     [SerializeField] private float maxLookAngle = 80f;
+    
+    [Header("Death Camera Settings")]
+    [SerializeField] private Transform headBone; // Assign the head bone from the rig
+    [SerializeField] private Vector3 deathCameraOffset = new Vector3(0f, 0.1f, 0.1f); // Offset from head bone
+    [SerializeField] private float deathCameraFollowSpeed = 10f;
+    private Transform originalCameraParent;
+    private Vector3 originalCameraLocalPos;
+    private Quaternion originalCameraLocalRot;
+    private bool isCameraFollowingHead = false;
 
     [Header("Generator Settings")]
     [SerializeField] private float interactRange = 10f;
@@ -93,8 +119,18 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     private bool speedToggleActive = false;
     private float savedWalkSpeed;
     private float savedSprintSpeed;
-    private List<int> papersPickedUp;
     [SerializeField] private float toggleSpeed = 25f; // speed used when toggled on
+    
+    // Animation state tracking
+    private bool jumpedWhileSprinting = false; // Track if jump started while sprinting
+    private bool isJumping = false; // True while actively in a jump (from press until landing)
+    private int currentEmote = 0;
+    private bool deathAnimationPlayed = false; // Track if dying animation finished
+    private bool isPlayingEmote = false;
+    private int lastAnimState = 0; // Track current animation to avoid redundant CrossFade calls
+    private float deathPositionY = 0f; // Store Y position when player dies
+    [SerializeField] private LayerMask paperLayerMask; // Set this to a new Layer "Paper"
+    private List<int> papersPickedUp;
 
 
     public PlayerState GetCurrentState()
@@ -107,6 +143,12 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         characterController = GetComponent<CharacterController>();
         currentStamina = maxStamina;
         spectatorCamera = GetComponent<SpectatorCamera>();
+        
+        // Get animator if not assigned
+        if (playerAnimator == null)
+        {
+            playerAnimator = GetComponent<Animator>();
+        }
     }
 
     private void Start()
@@ -125,8 +167,13 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 inputHandler = FindAnyObjectByType<InputHandler>();
                 if (inputHandler == null)
                 {
-                    enabled = false;
-                    return;
+                    // Try to get InputHandler from this GameObject
+                    inputHandler = GetComponent<InputHandler>();
+                    if (inputHandler == null)
+                    {
+                        // Create InputHandler on this GameObject
+                        inputHandler = gameObject.AddComponent<InputHandler>();
+                    }
                 }
             }
 
@@ -145,6 +192,17 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             if (playerCamera != null)
             {
                 playerCamera.enabled = true;
+                
+                // Store original camera transform for death camera system
+                originalCameraParent = playerCamera.transform.parent;
+                originalCameraLocalPos = playerCamera.transform.localPosition;
+                originalCameraLocalRot = playerCamera.transform.localRotation;
+                
+                // Try to find head bone automatically if not assigned
+                if (headBone == null && playerAnimator != null)
+                {
+                    headBone = playerAnimator.GetBoneTransform(HumanBodyBones.Head);
+                }
 
                 AudioListener listener = playerCamera.GetComponent<AudioListener>();
                 if (listener != null)
@@ -213,6 +271,102 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         characterController.Move(movement);
         transform.rotation = Quaternion.Lerp(transform.rotation, networkRotation, Time.deltaTime * 10f);
     }
+    
+    private void LateUpdate()
+    {
+        if (!photonView.IsMine && PhotonNetwork.IsConnected) return;
+        if (playerCamera == null) return;
+        
+        bool isDead = currentState == PlayerState.WaitingRevive || currentState == PlayerState.SinglePlayerDead;
+        
+        if (isDead)
+        {
+            HandleDeathCamera();
+        }
+        else if (isCameraFollowingHead)
+        {
+            // Restore camera to original position when revived
+            RestoreCameraPosition();
+        }
+    }
+    
+    private void HandleDeathCamera()
+    {
+        if (headBone == null) return;
+        
+        isCameraFollowingHead = true;
+        
+        // Unparent camera so it can follow the head freely
+        if (playerCamera.transform.parent == originalCameraParent)
+        {
+            playerCamera.transform.SetParent(null, true);
+        }
+        
+        // Calculate target position: slightly above the head
+        Vector3 targetPosition = headBone.position + Vector3.up * deathCameraOffset.y + headBone.forward * deathCameraOffset.z;
+        
+        // When dead and lying on the ground, camera should look UP at the sky
+        // Use a rotation that looks straight up with a slight forward tilt
+        Quaternion targetRotation;
+        
+        if (deathAnimationPlayed)
+        {
+            // Player is lying on ground - look straight up at the sky
+            targetRotation = Quaternion.Euler(-90f, transform.eulerAngles.y, 0f);
+        }
+        else
+        {
+            // During dying animation - follow head more closely but still trending upward
+            Vector3 lookDirection = Vector3.Lerp(headBone.up, Vector3.up, 0.5f);
+            targetRotation = Quaternion.LookRotation(lookDirection, -headBone.forward);
+        }
+        
+        // Smoothly interpolate camera position and rotation
+        float currentSpeed = deathAnimationPlayed ? deathCameraFollowSpeed * 0.5f : deathCameraFollowSpeed;
+        
+        playerCamera.transform.position = Vector3.Lerp(
+            playerCamera.transform.position, 
+            targetPosition, 
+            Time.deltaTime * currentSpeed
+        );
+        
+        playerCamera.transform.rotation = Quaternion.Slerp(
+            playerCamera.transform.rotation, 
+            targetRotation, 
+            Time.deltaTime * currentSpeed
+        );
+    }
+    
+    private void RestoreCameraPosition()
+    {
+        // Reparent camera back to original parent
+        if (playerCamera.transform.parent != originalCameraParent)
+        {
+            playerCamera.transform.SetParent(originalCameraParent, true);
+        }
+        
+        // Smoothly restore to original local position and rotation
+        playerCamera.transform.localPosition = Vector3.Lerp(
+            playerCamera.transform.localPosition,
+            originalCameraLocalPos,
+            Time.deltaTime * deathCameraFollowSpeed
+        );
+        
+        playerCamera.transform.localRotation = Quaternion.Slerp(
+            playerCamera.transform.localRotation,
+            originalCameraLocalRot,
+            Time.deltaTime * deathCameraFollowSpeed
+        );
+        
+        // Check if close enough to original position
+        if (Vector3.Distance(playerCamera.transform.localPosition, originalCameraLocalPos) < 0.01f)
+        {
+            playerCamera.transform.localPosition = originalCameraLocalPos;
+            playerCamera.transform.localRotation = originalCameraLocalRot;
+            isCameraFollowingHead = false;
+            verticalRotation = 0f; // Reset vertical rotation
+        }
+    }
     private void Update()
     {
         // Handle remote players differently
@@ -263,12 +417,13 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 HandleStamina();
                 HandleRevive();
                 HandleGenerator();
-                HandlePaperInteraction();
                 HandleGraveyardInteraction();
+                HandleEmoteInput();
                 break;
             case PlayerState.WaitingRevive:
-                HandleCameraRotation();
+                // Don't handle normal camera rotation - death camera handles it in LateUpdate
                 HandleWaitingRevive();
+                HandleDeathPhysics(); // Apply gravity while dead
                 break;
             case PlayerState.Spectating:
                 // Spectator mode - camera is handled by SpectatorCamera component
@@ -276,6 +431,162 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             case PlayerState.SinglePlayerDead:
                 break;
         }
+        
+        // Always update animations
+        UpdateAnimations();
+    }
+
+    private void HandleEmoteInput()
+    {
+        // Press F1 for emote (twerk dance) - only when grounded, not moving, and not already emoting
+        if (Input.GetKeyDown(KeyCode.F1) && isGrounded && !IsMoving() && !isPlayingEmote)
+        {
+            TriggerEmote(1);
+        }
+        
+        // Cancel emote if player starts moving
+        if (isPlayingEmote && IsMoving())
+        {
+            CancelEmote();
+        }
+    }
+
+    private void TriggerEmote(int emoteId)
+    {
+        if (playerAnimator == null) return;
+        
+        isPlayingEmote = true;
+        currentEmote = emoteId;
+        
+        // Force play emote animation
+        playerAnimator.CrossFade(StateEmote1, 0.1f);
+        lastAnimState = StateEmote1;
+    }
+
+    private void CancelEmote()
+    {
+        isPlayingEmote = false;
+        currentEmote = 0;
+        lastAnimState = 0; // Reset to force animation update
+    }
+    
+    private void CheckEmoteFinished()
+    {
+        if (!isPlayingEmote || playerAnimator == null) return;
+        
+        AnimatorStateInfo stateInfo = playerAnimator.GetCurrentAnimatorStateInfo(0);
+        
+        // Check if emote animation finished (normalizedTime >= 1 means one full loop)
+        if (stateInfo.shortNameHash == StateEmote1 && stateInfo.normalizedTime >= 0.95f)
+        {
+            CancelEmote();
+        }
+    }
+
+    private void UpdateAnimations()
+    {
+        if (playerAnimator == null) return;
+        
+        // Check if emote finished
+        CheckEmoteFinished();
+
+        // Determine current movement state
+        bool isMoving = inputHandler != null && inputHandler.movementInput.sqrMagnitude > INPUT_THRESHOLD * INPUT_THRESHOLD;
+        bool isSprinting = inputHandler != null && inputHandler.sprintInput && isMoving && currentStamina > 0f;
+        bool isDead = currentState == PlayerState.WaitingRevive || currentState == PlayerState.SinglePlayerDead;
+        
+        // Determine target animation state (priority order: Death > Jump > Emote > Movement)
+        int targetState = 0;
+        
+        // 1. DEATH - Highest priority
+        if (isDead)
+        {
+            // Animation was started in RPC_KillPlayer
+            // Just check if it finished and freeze
+            if (!deathAnimationPlayed)
+            {
+                AnimatorStateInfo stateInfo = playerAnimator.GetCurrentAnimatorStateInfo(0);
+                
+                // Check if dying animation finished (normalizedTime >= 1 means finished)
+                if (stateInfo.normalizedTime >= 0.95f)
+                {
+                    // Animation finished - freeze on last frame
+                    deathAnimationPlayed = true;
+                    playerAnimator.speed = 0f; // Freeze the animator
+                }
+            }
+            // Don't set targetState - animation is already playing or frozen
+        }
+        // 2. JUMPING - Use isJumping flag set in HandleJump()
+        else if (isJumping)
+        {
+            // Use the sprint state from when jump started
+            targetState = jumpedWhileSprinting ? StateJumpRun : StateJumpUp;
+        }
+        // 3. EMOTE - Only when not moving and grounded
+        else if (isPlayingEmote && isGrounded && !isMoving)
+        {
+            targetState = StateEmote1;
+        }
+        // 4. MOVEMENT - Normal ground movement
+        else
+        {
+            // Cancel emote if we get here (player moved or jumped)
+            if (isPlayingEmote)
+            {
+                CancelEmote();
+            }
+            
+            if (isSprinting)
+            {
+                targetState = StateRun;
+            }
+            else if (isMoving)
+            {
+                targetState = StateWalk;
+            }
+            else
+            {
+                targetState = StateIdle;
+            }
+        }
+        
+        // Only change animation if target state is different
+        if (targetState != 0 && targetState != lastAnimState)
+        {
+            float transitionTime = 0.15f;
+            
+            // Faster transitions for some states
+            if (targetState == StateJumpUp || targetState == StateJumpRun)
+            {
+                transitionTime = 0.05f; // Quick transition to jump
+            }
+            else if (targetState == StateDying)
+            {
+                transitionTime = 0.1f;
+            }
+            
+            playerAnimator.CrossFade(targetState, transitionTime);
+            lastAnimState = targetState;
+        }
+        
+        // Reset death tracking when revived
+        if (!isDead && deathAnimationPlayed)
+        {
+            deathAnimationPlayed = false;
+            lastAnimState = 0; // Force animation update
+            playerAnimator.speed = 1f; // Restore animator speed
+        }
+        
+        // Also update the parameters for network sync (other players use parameters)
+        float speedParam = isSprinting ? 1f : (isMoving ? 0.5f : 0f);
+        playerAnimator.SetFloat(AnimSpeed, speedParam);
+        playerAnimator.SetBool(AnimIsGrounded, isGrounded);
+        playerAnimator.SetBool(AnimIsJumping, isJumping);
+        playerAnimator.SetBool(AnimIsSprinting, jumpedWhileSprinting || isSprinting);
+        playerAnimator.SetBool(AnimIsDead, isDead);
+        playerAnimator.SetBool(AnimIsReviving, deathAnimationPlayed);
+        playerAnimator.SetInteger(AnimEmote, currentEmote);
     }
 
     private void HandleRevive()
@@ -448,6 +759,15 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             stream.SendNext(transform.rotation);
             stream.SendNext(velocity);
             stream.SendNext((int)currentState);
+            
+            // Sync animation state and normalized time for perfect sync
+            if (playerAnimator != null)
+            {
+                AnimatorStateInfo stateInfo = playerAnimator.GetCurrentAnimatorStateInfo(0);
+                stream.SendNext(stateInfo.shortNameHash); // Current playing animation
+                stream.SendNext(stateInfo.normalizedTime % 1f); // Current time in animation (0-1)
+                stream.SendNext(playerAnimator.speed); // Animator speed (for death freeze)
+            }
         }
         else
         {
@@ -464,6 +784,22 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
             float lag = Mathf.Abs((float)(PhotonNetwork.Time - info.SentServerTime));
             networkPosition += networkVelocity * lag;
+            
+            // Receive and apply animation - just mirror exactly what they're playing
+            if (playerAnimator != null)
+            {
+                int netAnimState = (int)stream.ReceiveNext();
+                float netNormalizedTime = (float)stream.ReceiveNext();
+                float netAnimSpeed = (float)stream.ReceiveNext();
+                
+                playerAnimator.speed = netAnimSpeed;
+                
+                // Just play exactly what they're playing
+                if (netAnimState != 0)
+                {
+                    playerAnimator.Play(netAnimState, 0, netNormalizedTime);
+                }
+            }
         }
     }
 
@@ -473,6 +809,72 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         PlayerState oldState = currentState;
         currentState = PlayerState.WaitingRevive;
         reviveTimer = 0f;
+        
+        // Store the Y position when dying to prevent floating
+        deathPositionY = transform.position.y;
+        
+        // Clear inventory and destroy held items
+        InventoryManager inventory = GetComponent<InventoryManager>();
+        if (inventory != null)
+        {
+            inventory.OnPlayerDeath();
+        }
+        
+        // Disable CharacterController to prevent it from interfering with death animation
+        if (characterController != null)
+        {
+            characterController.enabled = false;
+        }
+        
+        // Disable Root Motion to prevent animation from moving the player
+        if (playerAnimator != null)
+        {
+            playerAnimator.applyRootMotion = false;
+            playerAnimator.speed = 1f; // Ensure speed is normal
+            
+            // Force play the dying animation immediately
+            playerAnimator.Play(StateDying, 0, 0f);
+            lastAnimState = StateDying;
+        }
+        
+        deathAnimationPlayed = false; // Reset this so we can detect when animation finishes
+    }
+    
+    private void HandleDeathPhysics()
+    {
+        // Prevent the player from going UP - clamp to death position or lower
+        if (transform.position.y > deathPositionY)
+        {
+            transform.position = new Vector3(transform.position.x, deathPositionY, transform.position.z);
+        }
+        
+        // Apply gravity manually when CharacterController is disabled
+        // Check if we're above the ground
+        float rayDistance = 10f;
+        RaycastHit hit;
+        
+        // Cast a ray downward from the player's position
+        if (Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, out hit, rayDistance, groundMask))
+        {
+            // Calculate how high we are above the ground
+            float groundY = hit.point.y;
+            float playerY = transform.position.y;
+            float heightAboveGround = playerY - groundY;
+            
+            // If we're above the ground, move down
+            if (heightAboveGround > 0.05f)
+            {
+                // Apply gravity - move down smoothly
+                float fallSpeed = Mathf.Abs(gravity) * Time.deltaTime;
+                float newY = Mathf.Max(groundY, playerY - fallSpeed);
+                transform.position = new Vector3(transform.position.x, newY, transform.position.z);
+            }
+        }
+        else
+        {
+            // No ground detected, just apply gravity
+            transform.position += Vector3.up * gravity * Time.deltaTime;
+        }
     }
 
     [PunRPC]
@@ -515,6 +917,19 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 target.ChangeState(PlayerState.Alive);
                 target.isBeingRevived = false;
                 target.reviveTimer = 0f;
+                target.deathAnimationPlayed = false; // Reset death animation flag
+                
+                // Re-enable CharacterController
+                if (target.characterController != null)
+                {
+                    target.characterController.enabled = true;
+                }
+                
+                // Re-enable Root Motion (if it was originally enabled)
+                if (target.playerAnimator != null)
+                {
+                    target.playerAnimator.applyRootMotion = true;
+                }
             }
         }
     }
@@ -703,6 +1118,12 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
         if (jumpPressed && isGrounded && (infiniteStamina || currentStamina >= jumpStaminaCost))
         {
+            // Record if player was sprinting when jump started
+            jumpedWhileSprinting = inputHandler.sprintInput && inputHandler.movementInput.sqrMagnitude > INPUT_THRESHOLD * INPUT_THRESHOLD;
+            
+            // Set jump flag immediately - this is what triggers the animation
+            isJumping = true;
+            
             velocity.y = Mathf.Sqrt(jumpForce * JUMP_GRAVITY_MULTIPLIER * Mathf.Abs(gravity));
             if (!infiniteStamina)
             {
@@ -710,6 +1131,13 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 currentStamina = Mathf.Max(0f, currentStamina);
                 lastSprintTime = Time.time;
             }
+        }
+        
+        // Reset jump flag when landed (grounded and not going up)
+        if (isGrounded && velocity.y <= 0 && isJumping)
+        {
+            isJumping = false;
+            jumpedWhileSprinting = false;
         }
     }
 
