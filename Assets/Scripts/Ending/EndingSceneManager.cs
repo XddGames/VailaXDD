@@ -52,6 +52,7 @@ Até à próxima vez, viajante...";
 
 
 <size=36>Desenvolvimento</size>
+João Ribeiro
 Filipe Gonçalves
 Gonçalo Araújo
 Gonçalo Fernandes
