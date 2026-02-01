@@ -18,6 +18,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     [SerializeField] private Camera playerCamera;
     [SerializeField] public PlayerMask playerMask;
     [SerializeField] private GameObject playerUI; // Drag your player UI Canvas here
+
     private CharacterController characterController;
     [Header("Revive Settings")]
     [SerializeField] private float reviveRange = 3f;
@@ -64,6 +65,9 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     private GraveyardMinigame currentGraveyardMinigame;
 
     [Header("Paper Settings")]
+    public DiaryUI diaryUI; // Drag the 'Items' object here
+    public List<int> collectedPageIDs = new List<int>(); // Stores 1, 2, 3
+    private bool isDiaryOpen = false;
     [SerializeField] private LayerMask paperLayerMask; // Set this to a new Layer "Paper"
 
     private const float GROUND_STICK_FORCE = -2f;
@@ -188,7 +192,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
                 UnityEngine.Debug.Log($"Picked up Paper ID: {paper.pieceID}");
                 papersPickedUp.Add(paper.pieceID); 
                 UnityEngine.Debug.Log(papersPickedUp);
-                paper.OnPickedUp();
+                paper.OnPickedUp(this);
                 return; 
             }
         }
@@ -221,18 +225,26 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
         if (inputHandler == null) return;
 
-        if (Input.GetKeyDown(KeyCode.L))
+        if (Input.GetKeyDown(KeyCode.L)) // cheat
         {
             infiniteStamina = !infiniteStamina;
             if (infiniteStamina)
             {
                 currentStamina = maxStamina;
             }
+
+            collectedPageIDs.Add(1);
+            collectedPageIDs.Add(3);
         }
 
         if (Input.GetKeyDown(KeyCode.C))
         {
             ToggleSpeed();
+        }
+
+        if (Input.GetKeyDown(KeyCode.J))
+        {
+            ToggleDiaryState();
         }
         
         if (Input.GetKeyDown(KeyCode.G)) // mask
@@ -783,6 +795,37 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         }
     }
 
+    void ToggleDiaryState()
+    {
+        isDiaryOpen = !isDiaryOpen;
+
+        if (diaryUI != null)
+        {
+            diaryUI.ToggleDiary(isDiaryOpen, collectedPageIDs);
+        }
+
+        if (isDiaryOpen)
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
+    }
+
+    // Call this function when you pick up a paper
+    public void CollectPage(int pageID)
+    {
+        if (!collectedPageIDs.Contains(pageID))
+        {
+            collectedPageIDs.Add(pageID);
+            UnityEngine.Debug.Log($"Added Page {pageID} to Diary.");
+        }
+    }
+
     private void OnGUI()
     {
         if (currentState == PlayerState.Spectating)
@@ -822,4 +865,5 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             GUI.Box(new Rect(Screen.width / 2 - 100, Screen.height - 100, 200, 30), $"Powering up... {progress * 100:F0}%");
         }
     }
+
 }
