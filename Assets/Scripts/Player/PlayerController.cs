@@ -239,7 +239,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     private void HandlePaperInteraction()
     {
-        Collider[] hits = Physics.OverlapSphere(transform.position, interactRange, paperLayerMask);
+        Collider[] hits = Physics.OverlapSphere(transform.position, 4f, paperLayerMask);
             
         foreach (Collider hit in hits)
         {
@@ -647,7 +647,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     private void HandleGenerator()
     {
-        UnityEngine.Debug.Log($"currentGenerator={currentGenerator != null}");
+        //UnityEngine.Debug.Log($"currentGenerator={currentGenerator != null}");
         if (playerBeingRevived != null) return;
 
         if (!inputHandler.interactInput)
@@ -729,10 +729,8 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     private void HandleGraveyardInteraction()
     {
-        bool pressEdge = inputHandler.interactInput && !lastInteractStateForGrave;
-        lastInteractStateForGrave = inputHandler.interactInput;
-
-        if (!pressEdge)
+        // Use GetKeyDown for instant response
+        if (!Input.GetKeyDown(KeyCode.E))
             return;
 
         if (currentGraveyardMinigame == null)

@@ -17,7 +17,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &5965839885480680985
 RectTransform:
   m_ObjectHideFlags: 0
@@ -239,6 +239,7 @@ MonoBehaviour:
   playerCamera: {fileID: 7899688849107824191}
   playerMask: {fileID: 1610910975578692527}
   playerUI: {fileID: 8253415465378350966}
+  playerAnimator: {fileID: 0}
   reviveRange: 3
   reviveTime: 5
   reviveTimeLimit: 30
@@ -262,6 +263,9 @@ MonoBehaviour:
   jumpStaminaCost: 15
   mouseSensitivity: 0.2
   maxLookAngle: 75.7
+  headBone: {fileID: 0}
+  deathCameraOffset: {x: 0, y: 0.1, z: 0.1}
+  deathCameraFollowSpeed: 10
   interactRange: 3
   generatorLayerMask:
     serializedVersion: 2

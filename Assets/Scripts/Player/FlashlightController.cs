@@ -87,6 +87,12 @@ public class FlashlightController : MonoBehaviour
         if (!equipped && flashlightLight != null)
         {
             flashlightLight.enabled = false;
+            
+            // Sync with other players
+            if (parentPhotonView != null && parentPhotonView.IsMine)
+            {
+                parentPhotonView.RPC("RPC_SyncFlashlightState", RpcTarget.Others, false);
+            }
         }
     }
 

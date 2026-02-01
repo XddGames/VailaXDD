@@ -10,11 +10,13 @@ public class Gravestone : MonoBehaviourPunCallbacks
     [SerializeField] private Renderer gravestoneRenderer;
     [SerializeField] private Material normalMaterial;
     [SerializeField] private Material glowMaterial;
-    [SerializeField] private TextMeshPro nameText;
+    [SerializeField] private TMP_Text nameText;
     
     private GraveyardMinigame minigameManager;
     private bool isGlowing = false;
     private bool isClickable = true;
+    private float lastClickTime = 0f;
+    private const float CLICK_COOLDOWN = 0.5f;
 
     public string DeceasedName => deceasedName;
 
@@ -28,11 +30,25 @@ public class Gravestone : MonoBehaviourPunCallbacks
         UpdateNameDisplay();
     }
     
+    private void Start()
+    {
+        // Ensure name is visible after all initialization
+        UpdateNameDisplay();
+    }
+    
     private void UpdateNameDisplay()
     {
-        if (nameText != null && !string.IsNullOrEmpty(deceasedName))
+        if (nameText != null)
         {
-            nameText.text = deceasedName;
+            if (!string.IsNullOrEmpty(deceasedName))
+            {
+                nameText.text = deceasedName;
+                nameText.gameObject.SetActive(true);
+            }
+            else
+            {
+                nameText.text = "???";
+            }
         }
     }
     
@@ -48,6 +64,21 @@ public class Gravestone : MonoBehaviourPunCallbacks
         UpdateNameDisplay();
     }
 
+    public void SetName(string name)
+    {
+        deceasedName = name;
+        UpdateNameDisplay();
+    }
+
+    public void SetDisplayText(string displayText)
+    {
+        if (nameText != null)
+        {
+            nameText.text = displayText;
+            nameText.gameObject.SetActive(true);
+        }
+    }
+
     public void OnClicked(PlayerController player)
     {
         
@@ -55,6 +86,13 @@ public class Gravestone : MonoBehaviourPunCallbacks
         {
             return;
         }
+
+        // Prevent double-clicking
+        if (Time.time - lastClickTime < CLICK_COOLDOWN)
+        {
+            return;
+        }
+        lastClickTime = Time.time;
 
         if (PhotonNetwork.IsConnected)
         {

@@ -52,6 +52,10 @@ MonoBehaviour:
   - RPC_SetGlow
   - RPC_SyncFlashlight
   - RPC_SyncEquipped
+  - RPC_CompleteMinigame
+  - RPC_CorrectGravestoneClicked
+  - RPC_ResetMinigame
+  - RPC_WrongGravestoneClicked
   - RPC_SyncFlashlightEquipped
   - RPC_SyncFlashlightState
   - RPC_DestroyPickupByPosition
@@ -59,8 +63,10 @@ MonoBehaviour:
   - RPC_RequestDestroyPickup
   - RPC_SpawnFlashlightOnPlayer
   - RPC_OnPlayerDeath
+  - RPC_OnPlayerDeath
   - RPC_SyncJumpscare
   - RPC_SyncPosition
+  - RPC_InitializeMinigame
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 0

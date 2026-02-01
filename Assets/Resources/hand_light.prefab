@@ -369,6 +369,7 @@ GameObject:
   - component: {fileID: -3572732190697844022}
   - component: {fileID: -3398521978884909739}
   - component: {fileID: 760273194624314064}
+  - component: {fileID: 5408131211290862996}
   m_Layer: 0
   m_Name: hand_light
   m_TagString: Untagged
@@ -449,6 +450,28 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 28.975956, y: 42.967793, z: 24.61776}
   m_Center: {x: 0.32768846, y: -15.01686, z: -1.6595243}
+--- !u!114 &5408131211290862996
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8530567939078740915}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa584fbee541324448dd18d8409c7a41, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ObservedComponentsFoldoutOpen: 1
+  Group: 0
+  prefixField: -1
+  Synchronization: 3
+  OwnershipTransfer: 0
+  observableSearch: 2
+  ObservedComponents: []
+  sceneViewId: 0
+  InstantiationId: 0
+  isRuntimeInstantiated: 0
 --- !u!1 &9133543851314844529
 GameObject:
   m_ObjectHideFlags: 0
