@@ -184,7 +184,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maskOverlayUI: {fileID: 3795670009152711404}
   audioSource: {fileID: 0}
-  breathingSound: {fileID: 0}
+  breathingSound: {fileID: 8300000, guid: 5c41c5e4590dadc4f8f9fbc4a1df48ee, type: 3}
   equipSound: {fileID: 0}
   detectionMultiplier: 0.2
 --- !u!1 &3763391028880367221
@@ -1268,6 +1268,8 @@ MonoBehaviour:
   jumpStaminaCost: 15
   mouseSensitivity: 0.2
   maxLookAngle: 75.7
+  walkingSound: {fileID: 8300000, guid: a09ad49fc46f01f45b21254b18059d3f, type: 3}
+  walkingVolume: 0.5
   headBone: {fileID: 0}
   deathCameraOffset: {x: 0, y: 0.1, z: 0.1}
   deathCameraFollowSpeed: 10
