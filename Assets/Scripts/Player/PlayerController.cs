@@ -719,11 +719,13 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             stream.SendNext(velocity);
             stream.SendNext((int)currentState);
             
-            // Sync animation state directly (more reliable than parameters)
+            // Sync animation state and normalized time for perfect sync
             if (playerAnimator != null)
             {
-                stream.SendNext(lastAnimState); // Send the actual animation state hash
-                stream.SendNext(playerAnimator.speed); // Send animator speed (for death freeze)
+                AnimatorStateInfo stateInfo = playerAnimator.GetCurrentAnimatorStateInfo(0);
+                stream.SendNext(stateInfo.shortNameHash); // Current playing animation
+                stream.SendNext(stateInfo.normalizedTime % 1f); // Current time in animation (0-1)
+                stream.SendNext(playerAnimator.speed); // Animator speed (for death freeze)
             }
         }
         else
@@ -746,16 +748,22 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
             if (playerAnimator != null)
             {
                 int netAnimState = (int)stream.ReceiveNext();
+                float netNormalizedTime = (float)stream.ReceiveNext();
                 float netAnimSpeed = (float)stream.ReceiveNext();
                 
                 // Apply animator speed (for death freeze)
                 playerAnimator.speed = netAnimSpeed;
                 
-                // Only change animation if state is different
-                if (netAnimState != 0 && netAnimState != lastAnimState)
+                // Play the animation directly with normalized time for perfect sync
+                if (netAnimState != 0)
                 {
-                    playerAnimator.CrossFade(netAnimState, 0.15f);
-                    lastAnimState = netAnimState;
+                    AnimatorStateInfo currentStateInfo = playerAnimator.GetCurrentAnimatorStateInfo(0);
+                    
+                    // Only force transition if animation changed
+                    if (currentStateInfo.shortNameHash != netAnimState)
+                    {
+                        playerAnimator.Play(netAnimState, 0, netNormalizedTime);
+                    }
                 }
             }
         }
@@ -770,6 +778,13 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         
         // Store the Y position when dying to prevent floating
         deathPositionY = transform.position.y;
+        
+        // Clear inventory and destroy held items
+        InventoryManager inventory = GetComponent<InventoryManager>();
+        if (inventory != null)
+        {
+            inventory.OnPlayerDeath();
+        }
         
         // Disable CharacterController to prevent it from interfering with death animation
         if (characterController != null)

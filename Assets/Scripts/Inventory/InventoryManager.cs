@@ -199,6 +199,49 @@ public class InventoryManager : MonoBehaviourPun
         OnInventoryChanged?.Invoke();
     }
 
+    /// <summary>
+    /// Called when player dies - destroys held items and clears inventory
+    /// </summary>
+    public void OnPlayerDeath()
+    {
+        // Destroy the held flashlight
+        if (currentHeldItem != null)
+        {
+            Destroy(currentHeldItem);
+            currentHeldItem = null;
+        }
+        
+        flashlightController = null;
+        
+        // Clear the inventory
+        items.Clear();
+        selectedSlot = -1;
+        
+        // Sync to other players
+        if (photonView != null && photonView.IsMine)
+        {
+            photonView.RPC("RPC_OnPlayerDeath", RpcTarget.Others);
+        }
+        
+        OnInventoryChanged?.Invoke();
+        
+        Debug.Log("[InventoryManager] Player died - inventory cleared");
+    }
+    
+    [PunRPC]
+    void RPC_OnPlayerDeath()
+    {
+        // Remote player died - destroy their held item on our client
+        if (currentHeldItem != null)
+        {
+            Destroy(currentHeldItem);
+            currentHeldItem = null;
+        }
+        flashlightController = null;
+        items.Clear();
+        selectedSlot = -1;
+    }
+
     public bool AddItem(InventoryItem item)
     {
         if (items.Count >= maxSlots)
