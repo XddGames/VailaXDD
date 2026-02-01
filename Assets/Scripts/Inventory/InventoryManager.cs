@@ -22,6 +22,7 @@ public class InventoryManager : MonoBehaviourPun
     private GameObject currentHeldItem;
     private List<InventoryItem> items = new List<InventoryItem>();
     private int selectedSlot = -1;
+    private PlayerController playerController;
 
     public System.Action OnInventoryChanged;
 
@@ -29,6 +30,7 @@ public class InventoryManager : MonoBehaviourPun
     {
         // Find holdpoint in children - ALWAYS do this for all players (needed for network sync)
         holdPoint = FindHoldPoint();
+        playerController = GetComponent<PlayerController>();
         
         // Only set instance for local player
         if (photonView != null && !photonView.IsMine) return;
@@ -67,8 +69,17 @@ public class InventoryManager : MonoBehaviourPun
     private void Update()
     {
         if (photonView != null && !photonView.IsMine) return;
+        
+        // Don't allow inventory interaction when dead/spectating
+        if (!IsAlive()) return;
 
         HandleSlotInput();
+    }
+    
+    private bool IsAlive()
+    {
+        if (playerController == null) return true; // Fallback if no PlayerController
+        return playerController.GetCurrentState() == PlayerState.Alive;
     }
 
     private void HandleSlotInput()

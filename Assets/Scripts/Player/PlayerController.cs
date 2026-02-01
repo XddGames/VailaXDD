@@ -39,7 +39,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     [Header("Revive Settings")]
     [SerializeField] private float reviveRange = 3f;
     [SerializeField] private float reviveTime = 5f; // Time to revive in seconds
-    [SerializeField] private float reviveTimeLimit = 30f; // Time before permanent death
+    [SerializeField] private float reviveTimeLimit = 120f; // Time before permanent death
     [SerializeField] private LayerMask playerLayerMask; // Set to Player layer
     private float reviveProgress = 0f;
     private float reviveTimer = 0f; // Countdown timer
