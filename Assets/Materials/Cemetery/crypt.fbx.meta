@@ -3,7 +3,22 @@ guid: da9daf99b7051d545b571c28f4b13992
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: sclep_low_TT_checker_2048x2048_UV_GRID_Bas
+    second: {fileID: 2800000, guid: 6f917f15c4a2e6e4a8716f232467f9d6, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: sclep_low_TT_checker_2048x2048_UV_GRID_Nor
+    second: {fileID: 2800000, guid: 292415bac6fab284e87339b3eaf74c1b, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: sclep_low_TT_checker_2048x2048_UV_GRID_Rou
+    second: {fileID: 2800000, guid: 9ad3092e1581fb040a2a4ab045acd160, type: 3}
   materials:
     materialImportMode: 2
     materialName: 0
