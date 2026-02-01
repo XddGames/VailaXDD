@@ -852,7 +852,6 @@ MonoBehaviour:
   playerCamera: {fileID: 871055845375896470}
   playerMask: {fileID: 1610910975578692527, guid: 2656c0f15f7df4f4d9ae6d6a39c01122, type: 3}
   playerUI: {fileID: 6083773635010220116}
-  playerAnimator: {fileID: 0}
   reviveRange: 3
   reviveTime: 5
   reviveTimeLimit: 30
@@ -883,6 +882,9 @@ MonoBehaviour:
   gravestoneLayerMask:
     serializedVersion: 2
     m_Bits: 256
+  paperLayerMask:
+    serializedVersion: 2
+    m_Bits: 0
   toggleSpeed: 25
 --- !u!114 &-2464049246914389084
 MonoBehaviour:
