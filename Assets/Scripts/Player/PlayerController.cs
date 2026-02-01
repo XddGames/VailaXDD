@@ -397,8 +397,8 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     private void HandleEmoteInput()
     {
-        // Press 1 for emote (twerk dance) - only when grounded, not moving, and not already emoting
-        if (Input.GetKeyDown(KeyCode.Alpha1) && isGrounded && !IsMoving() && !isPlayingEmote)
+        // Press F1 for emote (twerk dance) - only when grounded, not moving, and not already emoting
+        if (Input.GetKeyDown(KeyCode.F1) && isGrounded && !IsMoving() && !isPlayingEmote)
         {
             TriggerEmote(1);
         }
