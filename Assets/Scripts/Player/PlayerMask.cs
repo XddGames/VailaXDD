@@ -18,8 +18,13 @@
         [Range(0f, 1f)]
         public float detectionMultiplier = 0.2f;
 
+        private PhotonView photonView;
+        private Renderer[] physicalMaskRenderers;
+
         void Start()
         {
+            photonView = GetComponent<PhotonView>();
+            
             if (maskOverlayUI != null)
             {
                 maskOverlayUI.SetActive(false);
@@ -29,17 +34,8 @@
             {
                 physicalMask.SetActive(false);
                 
-                // Hide physical mask renderers for local player so it doesn't block their vision
-                PhotonView photonView = GetComponent<PhotonView>();
-                if (photonView != null && photonView.IsMine)
-                {
-                    Renderer[] renderers = physicalMask.GetComponentsInChildren<Renderer>();
-                    foreach (Renderer renderer in renderers)
-                    {
-                        renderer.enabled = false;
-                    }
-                    Debug.Log("Disabled physical mask renderers for local player");
-                }
+                // Cache renderers for the physical mask
+                physicalMaskRenderers = physicalMask.GetComponentsInChildren<Renderer>(true);
             }
 
             if (audioSource == null)
@@ -52,20 +48,29 @@
         {
             HasMaskOn = isOn;
 
-            // Only show UI overlay for the local player
-            PhotonView photonView = GetComponent<PhotonView>();
             bool isLocalPlayer = photonView != null && photonView.IsMine;
             
+            // Only show UI overlay for the local player
             if (maskOverlayUI != null)
             {
                 maskOverlayUI.SetActive(isOn && isLocalPlayer);
-                Debug.Log($"MASK HAS MASKED TO {isOn} (UI shown: {isOn && isLocalPlayer})");
+                Debug.Log($"MASK HAS MASKED TO {isOn} (UI shown: {isOn && isLocalPlayer}, IsLocal: {isLocalPlayer})");
             }
             
-            // Show/hide physical 3D mask
+            // Handle physical 3D mask - always activate GameObject, but control renderer visibility
             if (physicalMask != null)
             {
                 physicalMask.SetActive(isOn);
+                
+                // For local player, hide the physical mask renderers so it doesn't block their view
+                // For remote players, show the physical mask so they can see it
+                if (physicalMaskRenderers != null)
+                {
+                    foreach (Renderer renderer in physicalMaskRenderers)
+                    {
+                        renderer.enabled = isOn && !isLocalPlayer;
+                    }
+                }
             }
 
             if (isOn)
